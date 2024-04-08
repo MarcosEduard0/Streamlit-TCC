@@ -8,11 +8,11 @@ st.set_page_config(page_title="Desenvolvimento TCC")
 
 @st.cache_data
 def carregamento_tabelas():
-    D_ALUNO = pd.read_csv("data/d_aluno.csv")
-    D_CURSO = pd.read_csv("data/d_curso.csv")
-    D_DISCIPLINA = pd.read_csv("data/d_disciplina.csv")
-    D_PERIODO = pd.read_csv("data/d_periodo.csv")
-    F_DESEMPENHO_ACADEMICO = pd.read_csv("data/f_desempenho_academico.csv")
+    D_ALUNO = pd.read_csv("data/refined/d_aluno.csv")
+    D_CURSO = pd.read_csv("data/refined/d_curso.csv")
+    D_DISCIPLINA = pd.read_csv("data/refined/d_disciplina.csv")
+    D_PERIODO = pd.read_csv("data/refined/d_periodo.csv")
+    F_DESEMPENHO_ACADEMICO = pd.read_csv("data/refined/f_desempenho_academico.csv")
 
     D_PERIODO["periodo"] = (
         D_PERIODO["ano"].astype(str) + "/" + D_PERIODO["semestre"].astype(str)

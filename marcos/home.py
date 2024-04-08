@@ -17,6 +17,14 @@ def carregar_dados_matricula():
     return pd.read_csv("data/refined/f_matricula_aluno.csv")
 
 
+def metricas():
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Mulheres", "98", "5")
+    col2.metric("Homens", "150", "-15")
+    col3.metric("Abandono", "20%", "-4%")
+    col4.metric("Trancamento", "10%", "6%")
+
+
 def main():
     st.write("## Hello Word! Análise Gerais 👋")
     st.markdown(
@@ -24,6 +32,9 @@ def main():
         Esta página tem como objetivo analisar dados gerais do curso.
     """
     )
+
+    with st.container():
+        metricas()
 
     with st.container():
         st.write("---")
@@ -66,7 +77,7 @@ def main():
         )
         df_filtered = df_filtered[cond]
 
-        st.bar_chart(df_filtered, x="periodo", y="quantidade")
+        st.line_chart(df_filtered, x="periodo", y="quantidade")
 
 
 if __name__ == "__main__":
