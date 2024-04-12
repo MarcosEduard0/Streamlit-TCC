@@ -19,8 +19,8 @@ def carregar_dados_matricula():
 
 def metricas():
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Mulheres", "98", "5")
-    col2.metric("Homens", "150", "-15")
+    col1.metric("Mulheres", "279", "-20")
+    col2.metric("Homens", "1704", "56")
     col3.metric("Abandono", "20%", "-4%")
     col4.metric("Trancamento", "10%", "6%")
 
@@ -77,7 +77,7 @@ def main():
         )
         df_filtered = df_filtered[cond]
 
-        st.line_chart(df_filtered, x="periodo", y="quantidade")
+        st.bar_chart(df_filtered, x="periodo", y="quantidade")
 
 
 if __name__ == "__main__":
