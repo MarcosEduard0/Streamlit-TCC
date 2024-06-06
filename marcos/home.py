@@ -17,10 +17,21 @@ def carregar_dados_matricula():
     return pd.read_csv("data/refined/f_matricula_aluno.csv")
 
 
-def metricas():
+D_PERIODO = pd.read_csv("data/refined/d_periodo.csv")
+D_ALUNO = pd.read_csv("data/refined/d_aluno.csv")
+D_DISCIPLINA = pd.read_csv("data/refined/d_disciplina.csv")
+F_DESEMPENHO_ACADEMICO = pd.read_csv("data/refined/f_desempenho_academico.csv")
+F_MATRICULA_ALUNO = carregar_dados_matricula()
+
+
+def metricas(df):
+    # quant_homens = df[df["sexo"] == "M"]['quantidade']
+    df_grouped = df.groupby("sexo")["quantidade"].sum().reset_index()
+    quant_homens = df_grouped[df_grouped["sexo"] == "M"]["quantidade"]
+    quant_mulheres = df_grouped[df_grouped["sexo"] == "F"]["quantidade"]
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Mulheres", "279", "-20")
-    col2.metric("Homens", "1704", "56")
+    col1.metric("Mulheres", quant_mulheres, "-20")
+    col2.metric("Homens", quant_homens, "56")
     col3.metric("Abandono", "20%", "-4%")
     col4.metric("Trancamento", "10%", "6%")
 
@@ -33,33 +44,29 @@ def main():
     """
     )
 
-    with st.container():
-        metricas()
+    # Combina os dataframes
+    df = pd.merge(F_MATRICULA_ALUNO, D_PERIODO, on="sk_d_periodo", how="inner")
+    df = pd.merge(df, D_ALUNO, on="sk_d_aluno", how="inner")
 
-    with st.container():
-        st.write("---")
-        st.subheader("Analise de Matricula")
+    df_filtered = (
+        df.groupby(["periodo", "situacao_matricula", "ano", "semestre", "sexo"])
+        .size()
+        .reset_index(name="quantidade")
+    )
 
-        # Carregando os dados apenas quando necessário
-        F_MATRICULA_ALUNO = carregar_dados_matricula()
+    # Filtros
+    situacao_matricula_options = st.sidebar.multiselect(
+        "Escolha o tipo de situação da matrícula",
+        df_filtered["situacao_matricula"].unique().tolist(),
+        ["Ativa"],
+    )
 
-        df_filtered = (
-            F_MATRICULA_ALUNO.groupby(
-                ["periodo", "situacao_matricula", "ano", "semestre"]
-            )
-            .size()
-            .reset_index(name="quantidade")
-        )
-
-        situacao_matricula_options = st.sidebar.multiselect(
-            "Escolha o tipo de situação da matrícula",
-            df_filtered["situacao_matricula"].unique().tolist(),
-            ["Ativa"],
-        )
-
+    if not situacao_matricula_options:
+        st.error("Por favor, selecione uma situação.")
+    else:
         semestres = sorted(df_filtered["semestre"].unique().tolist())
         semestres_select = st.sidebar.multiselect(
-            "Semestres", semestres, default=semestres[1:3]
+            "Semestres", semestres, default=[1, 2]
         )
 
         anos = df_filtered["ano"].unique().tolist()
@@ -77,7 +84,20 @@ def main():
         )
         df_filtered = df_filtered[cond]
 
-        st.bar_chart(df_filtered, x="periodo", y="quantidade")
+        # Primeiro container
+        with st.container():
+            metricas(df_filtered)
+
+        # Segundo container
+        with st.container():
+            st.write("---")
+            st.subheader("Análise de Matrícula")
+            df_grouped = (
+                df_filtered.groupby(["periodo", "semestre"])["quantidade"]
+                .sum()
+                .reset_index()
+            )
+            st.line_chart(df_grouped, x="periodo", y="quantidade")
 
 
 if __name__ == "__main__":
