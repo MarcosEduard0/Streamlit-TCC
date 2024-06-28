@@ -68,6 +68,7 @@ def grafico_media_cra_periodo(dataframe):
     data = (
         dataframe.groupby(["periodo"])["cr_acumulado"].mean().reset_index(name="media")
     )
+    data["media"] = data["media"].round(2)
     data.sort_values("periodo", inplace=True)
 
     fig = px.line(
@@ -75,7 +76,9 @@ def grafico_media_cra_periodo(dataframe):
         x="periodo",
         y="media",
         labels={"media": "Média CRA", "periodo": "Período"},
+        markers=True,
     )
+
     st.plotly_chart(fig)
 
 
@@ -87,6 +90,16 @@ def grafico_situacao_matricula_periodo_ingresso(dataframe):
     )
 
     data.sort_values("periodo_ingresso_ufrj", inplace=True)
+
+    # Calcula o total de cada período de ingresso
+    total_por_periodo = (
+        data.groupby("periodo_ingresso_ufrj")["quantidade"]
+        .sum()
+        .reset_index(name="total")
+    )
+
+    # Junta os totais ao dataframe original
+    data = data.merge(total_por_periodo, on="periodo_ingresso_ufrj")
 
     fig = px.bar(
         data,
@@ -100,11 +113,24 @@ def grafico_situacao_matricula_periodo_ingresso(dataframe):
         },
     )
 
+    # Customiza o hovertemplate para incluir o total
+    fig.update_traces(
+        hovertemplate="<br>".join(
+            [
+                "Período: %{x}",
+                "Quantidade: %{y}",
+                "Total no Período: %{customdata[0]}",
+            ]
+        ),
+        customdata=data[["total"]].values,
+    )
+
     fig.update_layout(
         showlegend=True,
         legend=dict(title="Situação da Matrícula", traceorder="normal"),
         barmode="stack",
     )
+
     st.plotly_chart(fig)
 
 
