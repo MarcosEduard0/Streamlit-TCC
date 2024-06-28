@@ -14,163 +14,170 @@ st.set_page_config(
 )
 
 
-# @st.cache_data
-# def carregar_dados():
-D_PERIODO = pd.read_csv("data/refined/d_periodo.csv")
-D_ALUNO = pd.read_csv("data/refined/d_aluno.csv")
-D_DISCIPLINA = pd.read_csv("data/refined/d_disciplina.csv")
-F_MATRICULA_ALUNO = pd.read_csv("data/refined/f_situacao_metricula.csv")
-
-
-def metricas_atuais(df):
-    df_genero = df.groupby("sexo")["quantidade"].sum().reset_index()
-    df_situacao = df.groupby("situacao_matricula")["quantidade"].sum().reset_index()
-
-    quant_homens = df_genero[df_genero["sexo"] == "M"]["quantidade"]
-    quant_mulheres = df_genero[df_genero["sexo"] == "F"]["quantidade"]
-    quant_cancelado = df_situacao[df_situacao["situacao_matricula"] == "Cancelada"][
-        "quantidade"
-    ]
-    quant_trancado = df_situacao[df_situacao["situacao_matricula"] == "Trancada"][
-        "quantidade"
-    ]
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Mulheres", quant_mulheres)
-    col2.metric("Homens", quant_homens)
-    col3.metric("Evasão", quant_cancelado)
-    col4.metric("Trancamento", quant_trancado)
-
-
-def main():
-    st.header("Sitema de Análises Acadêmica")
-    st.markdown(
-        """
-        Esta página tem como objetivo analisar dados gerais do curso.
-    """
+@st.cache_data
+def carregar_dados():
+    """Carrega os dados dos arquivos CSV."""
+    d_periodo = pd.read_csv("data/refined/d_periodo.csv")
+    d_aluno = pd.read_csv("data/refined/d_aluno.csv")
+    d_disciplina = pd.read_csv("data/refined/d_disciplina.csv")
+    f_matricula_aluno = pd.read_csv("data/refined/f_situacao_metricula.csv")
+    f_situacao_periodo = pd.read_csv("data/refined/f_situacao_periodo.csv")
+    periodo_atual = d_aluno.periodo_ingresso_ufrj.max()
+    return (
+        d_periodo,
+        d_aluno,
+        d_disciplina,
+        f_matricula_aluno,
+        f_situacao_periodo,
+        periodo_atual,
     )
-    st.sidebar.header("Filtros")
-    # Combina os dataframes
-    df = pd.merge(F_MATRICULA_ALUNO, D_PERIODO, on="sk_d_periodo", how="inner")
-    df = pd.merge(df, D_ALUNO, on="sk_d_aluno", how="inner")
 
-    df_filtered = (
-        df.groupby(["periodo", "situacao_matricula", "ano", "semestre", "sexo"])
+
+def grafico_situacao_matricula_periodo(dataframe):
+    data = dataframe[dataframe["situacao_matricula"] != "Ativa"]
+    data = (
+        data.groupby(["situacao_matricula", "periodo"])
         .size()
         .reset_index(name="quantidade")
     )
-    # Filtros
-    situacao_matricula_options = st.sidebar.multiselect(
-        "Escolha o tipo de situação da matrícula",
-        df_filtered["situacao_matricula"].unique().tolist(),
-        ["Ativa"],
+
+    data.sort_values("periodo", inplace=True)
+
+    fig = px.bar(
+        data,
+        x="periodo",
+        y="quantidade",
+        color="situacao_matricula",
+        labels={
+            "quantidade": "Quantidade",
+            "periodo": "Período",
+            "situacao_matricula": "Situação da Matrícula",
+        },
     )
 
-    if not situacao_matricula_options:
-        st.error("Por favor, selecione uma situação.")
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(title="Situação da Matrícula", traceorder="normal"),
+        barmode="stack",
+    )
+    st.plotly_chart(fig)
 
-    else:
-        semestres = sorted(df_filtered["semestre"].unique().tolist())
-        semestres_select = st.sidebar.multiselect(
-            "Semestres", semestres, default=[1, 2]
-        )
 
-        anos = df_filtered["ano"].unique().tolist()
-        anos = st.sidebar.slider(
-            "Anos",
-            max_value=max(anos),
-            min_value=min(anos),
-            value=(min(anos), max(anos)),
-        )
+def grafico_media_cra_periodo(dataframe):
 
-        cond_container1 = (
-            (df_filtered["ano"].between(*anos))
-            & (df_filtered["semestre"].isin(semestres_select))
-            & (df_filtered["situacao_matricula"].isin(situacao_matricula_options))
-        )
+    data = (
+        dataframe.groupby(["periodo"])["cr_acumulado"].mean().reset_index(name="media")
+    )
+    data.sort_values("periodo", inplace=True)
 
-        cond_container2 = (
-            (df_filtered["ano"].between(*anos))
-            & (df_filtered["semestre"].isin(semestres_select))
-            & (df_filtered["situacao_matricula"].isin(situacao_matricula_options))
-        )
+    fig = px.line(
+        data,
+        x="periodo",
+        y="media",
+        labels={"media": "Média CRA", "periodo": "Período"},
+    )
+    st.plotly_chart(fig)
 
-        df_metricas = df_filtered[cond_container1]
-        df_cr_periodo = df_filtered[cond_container2]
 
-        tab1, tab2 = st.tabs(["Período Atual", "Período Total"])
-        with st.container():
-            # st.header("A cat")
-            metricas_atuais(df_metricas)
-            st.write("---")
+def grafico_situacao_matricula_periodo_ingresso(dataframe):
+    data = (
+        dataframe.groupby(["situacao_matricula", "periodo_ingresso_ufrj"])
+        .size()
+        .reset_index(name="quantidade")
+    )
+
+    data.sort_values("periodo_ingresso_ufrj", inplace=True)
+
+    fig = px.bar(
+        data,
+        x="periodo_ingresso_ufrj",
+        y="quantidade",
+        color="situacao_matricula",
+        labels={
+            "quantidade": "Quantidade",
+            "periodo_ingresso_ufrj": "Período de Ingresso na UFRJ",
+            "situacao_matricula": "Situação da Matrícula",
+        },
+    )
+
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(title="Situação da Matrícula", traceorder="normal"),
+        barmode="stack",
+    )
+    st.plotly_chart(fig)
+
+
+def metricas_atuais(df, periodo_atual):
+    """Exibe as métricas atuais dos alunos."""
+    df = df[df["periodo"] == periodo_atual]
+
+    df_situacao = (
+        df.groupby(["situacao_matricula"]).size().reset_index(name="quantidade")
+    )
+    df_genero = df.groupby(["sexo"]).size().reset_index(name="quantidade")
+
+    quant_homens = df_genero[df_genero["sexo"] == "Masculino"]["quantidade"].values[0]
+    quant_mulheres = df_genero[df_genero["sexo"] == "Feminino"]["quantidade"].values[0]
+    quant_ativa = df_situacao[df_situacao["situacao_matricula"] == "Ativa"][
+        "quantidade"
+    ].values[0]
+    quant_trancado = df_situacao[df_situacao["situacao_matricula"] == "Trancada"][
+        "quantidade"
+    ].values[0]
+
     col1, col2 = st.columns(2)
+    col1.metric("Ativa", quant_ativa)
+    col2.metric("Trancado", quant_trancado)
+    # col3.metric("Mulheres", quant_mulheres)
+    # col4.metric("Homens", quant_homens)
 
-    # Segundo container
-    with col1:
-        # st.header("A cat")
-        st.subheader("Análise de Matrícula")
-        data = (
-            df.groupby(["situacao_matricula", "periodo"])
-            .size()
-            .reset_index(name="quantidade")
-        )
 
-        data.sort_values("periodo", inplace=True)
-        fig = px.bar(
-            data,
-            x="periodo",
-            y="quantidade",
-            color="situacao_matricula",
-            # title="Análise de Matrícula",
-            labels={"quantidade": "Quantidade", "periodo": "Período"},
-        )
-        # Desativando a interatividade da legenda
-        fig.update_layout(
-            showlegend=True,
-            legend=dict(title="Situação da Matrícula", traceorder="normal"),
-            barmode="stack",
-        )
+def main():
+    (
+        D_PERIODO,
+        D_ALUNO,
+        D_DISCIPLINA,
+        F_MATRICULA_ALUNO,
+        F_SITUACAO_PERIODO,
+        PERIODO_ATUAL,
+    ) = carregar_dados()
 
-        st.plotly_chart(fig)
+    st.header("Sistema de Análises Acadêmica")
+    st.subheader(f"Perído Atual: {PERIODO_ATUAL}")
+    st.markdown(f"Esta página tem como objetivo analisar dados gerais do curso.")
 
-    with col2:
-        # st.header("A cat")
-        st.subheader("Análise da Média do CRA")
-        # data = np.random.randn(10, 1)
-        # st.line_chart(data)
-        test = px.data.stocks()
-        fig = px.line(test, x="date", y="GOOG")
-        st.plotly_chart(fig)
+    # Combina os dataframes
+    df_situacao_matricula = pd.merge(
+        F_MATRICULA_ALUNO, D_PERIODO, on="sk_d_periodo", how="inner"
+    )
+    df_situacao_matricula = pd.merge(
+        df_situacao_matricula, D_ALUNO, on="sk_d_aluno", how="inner"
+    )
+
+    df_situacao_periodo = pd.merge(
+        F_SITUACAO_PERIODO, D_PERIODO, on="sk_d_periodo", how="inner"
+    )
+
+    with st.container():
+        metricas_atuais(df_situacao_matricula, PERIODO_ATUAL)
+        st.write("---")
+
+    with st.container():
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Total de Alunos por Situação")
+            grafico_situacao_matricula_periodo(df_situacao_matricula)
+
+        with col2:
+            st.subheader("Média CRA por Perído")
+            grafico_media_cra_periodo(df_situacao_periodo)
 
     # Segundo container
     with st.container():
         st.subheader("Análise de Matrícula Periodo de Ingresso")
-        data = (
-            df.groupby(["situacao_matricula", "periodo_ingresso_ufrj"])
-            .size()
-            .reset_index(name="quantidade")
-        )
-
-        data.sort_values("periodo_ingresso_ufrj", inplace=True)
-        fig = px.bar(
-            data,
-            x="periodo_ingresso_ufrj",
-            y="quantidade",
-            color="situacao_matricula",
-            # title="Análise de Matrícula",
-            labels={
-                "quantidade": "Quantidade",
-                "periodo_ingresso_ufrj": "Período de Ingresso UFRJ",
-            },
-        )
-        # Desativando a interatividade da legenda
-        fig.update_layout(
-            showlegend=True,
-            legend=dict(title="Situação da Matrícula", traceorder="normal"),
-            barmode="stack",
-        )
-
-        st.plotly_chart(fig)
+        grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula)
 
 
 if __name__ == "__main__":
