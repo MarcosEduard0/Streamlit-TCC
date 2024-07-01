@@ -134,17 +134,47 @@ def grafico_situacao_matricula_periodo_ingresso(dataframe):
     st.plotly_chart(fig)
 
 
+def periodos_anteriores(periodo_atual, num_semestres):
+    ano, semestre = periodo_atual.split("/")
+    ano = int(ano)
+    semestre = int(semestre)
+
+    total_semestres = (ano * 2 + semestre) - num_semestres
+
+    ano_anterior = total_semestres // 2
+    semestre_anterior = total_semestres % 2
+
+    if semestre_anterior == 0:
+        semestre_anterior = 2
+        ano_anterior -= 1
+
+    return f"{ano_anterior}/{semestre_anterior}"
+
+
 def metricas_atuais(df, periodo_atual):
     """Exibe as métricas atuais dos alunos."""
-    df = df[df["periodo"] == periodo_atual]
+    df_atual = df[df["periodo"] == periodo_atual]
+
+    # Obter período anterior
+    periodo_anterior = periodos_anteriores(periodo_atual, 1)
+    df_anterior = df[df["periodo"] == periodo_anterior]
 
     df_situacao = (
-        df.groupby(["situacao_matricula"]).size().reset_index(name="quantidade")
+        df_atual.groupby(["situacao_matricula"]).size().reset_index(name="quantidade")
     )
-    df_genero = df.groupby(["sexo"]).size().reset_index(name="quantidade")
+    df_genero = df_atual.groupby(["sexo"]).size().reset_index(name="quantidade")
 
-    quant_homens = df_genero[df_genero["sexo"] == "Masculino"]["quantidade"].values[0]
-    quant_mulheres = df_genero[df_genero["sexo"] == "Feminino"]["quantidade"].values[0]
+    media_enem_atual = round(df_atual["nota_enem"].mean(), 2)
+    media_enem_anterior = round(df_anterior["nota_enem"].mean(), 2)
+
+    # Calcular a variação percentual
+    if media_enem_anterior != 0:
+        variacao_enem = round(
+            ((media_enem_atual - media_enem_anterior) / media_enem_anterior) * 100, 2
+        )
+    else:
+        variacao_enem = 0
+
     quant_ativa = df_situacao[df_situacao["situacao_matricula"] == "Ativa"][
         "quantidade"
     ].values[0]
@@ -152,11 +182,10 @@ def metricas_atuais(df, periodo_atual):
         "quantidade"
     ].values[0]
 
-    col1, col2 = st.columns(2)
-    col1.metric("Ativa", quant_ativa)
-    col2.metric("Trancado", quant_trancado)
-    # col3.metric("Mulheres", quant_mulheres)
-    # col4.metric("Homens", quant_homens)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Ativos", quant_ativa)
+    col2.metric("Trancados", quant_trancado)
+    col3.metric("Média Enem", media_enem_atual, f"{variacao_enem}%")
 
 
 def main():
@@ -171,7 +200,7 @@ def main():
 
     st.header("Sistema de Análises Acadêmica")
     st.subheader(f"Perído Atual: {PERIODO_ATUAL}")
-    st.markdown(f"Esta página tem como objetivo analisar dados gerais do curso.")
+    st.markdown(f"Situação Atual dos alunos.")
 
     # Combina os dataframes
     df_situacao_matricula = pd.merge(
