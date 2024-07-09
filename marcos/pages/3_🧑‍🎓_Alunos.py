@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 
-st.set_page_config(page_title="Alunos", page_icon="🧑‍🎓")
+st.set_page_config(page_title="Alunos", page_icon="🧑‍🎓", layout="wide")
 
 st.markdown("# Alunos")
 
@@ -40,20 +40,8 @@ def main():
         PERIODO_ATUAL,
     ) = carregar_dados()
 
-    df = pd.DataFrame(
-        {
-            "name": ["Roadmap", "Extras", "Issues"],
-            "url": [
-                "https://roadmap.streamlit.app",
-                "https://extras.streamlit.app",
-                "https://issues.streamlit.app",
-            ],
-            "stars": [random.randint(0, 1000) for _ in range(3)],
-            "views_history": [
-                [random.randint(0, 5000) for _ in range(30)] for _ in range(3)
-            ],
-        }
-    )
+    st.sidebar.page_link("home.py", label="Home")
+    st.sidebar.page_link("pages/teste.py", label="Page 1")
 
     # Combina os dataframes
     df_situacao_matricula = pd.merge(
@@ -69,35 +57,32 @@ def main():
         ["sk_d_periodo", "sk_d_aluno", "sk_d_curso"], inplace=True, axis=1
     )
 
-    st.dataframe(
-        df,
-        column_config={
-            "name": "App name",
-            "stars": st.column_config.NumberColumn(
-                "Github Stars",
-                help="Number of stars on GitHub",
-                format="%d ⭐",
-            ),
-            "url": st.column_config.LinkColumn("App URL"),
-            "views_history": st.column_config.LineChartColumn(
-                "Views (past 30 days)", y_min=0, y_max=5000
-            ),
-        },
-        hide_index=True,
-    )
-
     teste = df_situacao_matricula.sort_values(by=["matricula_dre", "ano", "semestre"])
     situacao_atual = teste.groupby("matricula_dre").last().reset_index()
     situacao_atual = situacao_atual.drop(columns=["ano", "semestre"])
 
+    # Testes
+    df_situacao_periodo = pd.merge(
+        D_ALUNO, F_SITUACAO_PERIODO, on="sk_d_aluno", how="inner"
+    )
+    result = (
+        df_situacao_periodo.groupby("matricula_dre")
+        .agg({"cr_periodo": list, "cr_acumulado": list})
+        .reset_index()
+    )
+
+    df = situacao_atual.merge(result, on="matricula_dre", how="inner")
+
     st.dataframe(
-        situacao_atual,
+        df,
         use_container_width=True,
         column_order=(
             "matricula_dre",
             "nome_completo",
             "curso_ingresso_ufrj",
             "situacao_matricula",
+            "cr_periodo",
+            "cr_acumulado",
         ),
         column_config={
             "nome_completo": "Nome Completo",
@@ -108,8 +93,11 @@ def main():
             ),
             "situacao_matricula": "Situação da Matrícula",
             "curso_ingresso_ufrj": "Curso de Ingresso",
-            "views_history": st.column_config.LineChartColumn(
-                "Views (past 30 days)", y_min=0, y_max=5000
+            "cr_acumulado": st.column_config.LineChartColumn(
+                "CR Acumulado", y_min=0, y_max=10
+            ),
+            "cr_periodo": st.column_config.LineChartColumn(
+                "CR por Período", y_min=0, y_max=10
             ),
         },
         hide_index=True,

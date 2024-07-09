@@ -5,7 +5,7 @@ import plotly.express as px
 
 st.set_page_config(
     page_title="COAA - UFRJ",
-    page_icon="🧊",
+    page_icon="🏠",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
@@ -182,10 +182,11 @@ def metricas_atuais(df, periodo_atual):
         "quantidade"
     ].values[0]
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Ativos", quant_ativa)
     col2.metric("Trancados", quant_trancado)
     col3.metric("Média Enem", media_enem_atual, f"{variacao_enem}%")
+    col3.metric("Média Idade", 21, f"{variacao_enem}%")
 
 
 def main():
