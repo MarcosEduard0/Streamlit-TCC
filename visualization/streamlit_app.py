@@ -11,16 +11,16 @@ st.logo(image=logo_path, icon_image=icon_image_path)
 
 # Definindo as páginas
 home_page = st.Page(
-    "home/home.py", title="Início", icon=":material/home:", default=True
+    "pages/home/home.py", title="Início", icon=":material/home:", default=True
 )
 alunos_page = st.Page(
-    "alunos/home_aluno.py", title="Geral", icon=":material/dashboard:"
+    "pages/alunos/home_aluno.py", title="Geral", icon=":material/dashboard:"
 )
 individual_aluno_page = st.Page(
-    "alunos/individual_aluno.py", title="Individual", icon=":material/search:"
+    "pages/alunos/individual_aluno.py", title="Individual", icon=":material/search:"
 )
 disciplinas_page = st.Page(
-    "disciplinas/home_disciplina.py", title="Início", icon=":material/search:"
+    "pages/disciplinas/home_disciplina.py", title="Início", icon=":material/search:"
 )
 
 # Navegação
