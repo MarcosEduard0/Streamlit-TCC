@@ -4,15 +4,15 @@ import plotly.express as px
 
 from utils.auxiliary_functions.all_auxiliary_functions import carregar_dados
 
-st.set_page_config(
-    page_title="COAA - UFRJ",
-    page_icon="🏠",
-    layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        "About": "Trabalho desenvolvido para o trabalho de conclusão de curso!",
-    },
-)
+# st.set_page_config(
+#     page_title="COAA - UFRJ",
+#     page_icon="🏠",
+#     layout="wide",
+#     initial_sidebar_state="expanded",
+#     menu_items={
+#         "About": "Trabalho desenvolvido para o trabalho de conclusão de curso!",
+#     },
+# )
 
 
 def grafico_situacao_matricula_periodo(dataframe):
