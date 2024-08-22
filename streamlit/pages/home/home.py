@@ -16,24 +16,24 @@ from utils.auxiliary_functions.all_auxiliary_functions import carregar_dados
 
 
 def grafico_situacao_matricula_periodo(dataframe):
-    data = dataframe[dataframe["situacao_matricula_simplificada"] != "Ativa"]
+    data = dataframe[dataframe["DS_SITUACAO"] != "Ativa"]
     data = (
-        data.groupby(["situacao_matricula_simplificada", "periodo"])
+        data.groupby(["DS_SITUACAO", "DS_PERIODO"])
         .size()
         .reset_index(name="quantidade")
     )
 
-    data.sort_values("periodo", inplace=True)
+    data.sort_values("DS_PERIODO", inplace=True)
 
     fig = px.bar(
         data,
-        x="periodo",
+        x="DS_PERIODO",
         y="quantidade",
-        color="situacao_matricula_simplificada",
+        color="DS_SITUACAO",
         labels={
             "quantidade": "Quantidade",
-            "periodo": "Período",
-            "situacao_matricula_simplificada": "Situação da Matrícula",
+            "DS_PERIODO": "Período",
+            "DS_SITUACAO": "Situação da Matrícula",
         },
     )
 
@@ -48,16 +48,18 @@ def grafico_situacao_matricula_periodo(dataframe):
 def grafico_media_cra_periodo(dataframe):
 
     data = (
-        dataframe.groupby(["periodo"])["cr_acumulado"].mean().reset_index(name="media")
+        dataframe.groupby(["DS_PERIODO"])["VL_CR_ACUMULADO"]
+        .mean()
+        .reset_index(name="media")
     )
     data["media"] = data["media"].round(2)
-    data.sort_values("periodo", inplace=True)
+    data.sort_values("DS_PERIODO", inplace=True)
 
     fig = px.line(
         data,
-        x="periodo",
+        x="DS_PERIODO",
         y="media",
-        labels={"media": "Média CRA", "periodo": "Período"},
+        labels={"media": "Média CRA", "DS_PERIODO": "Período"},
         markers=True,
     )
 
@@ -66,32 +68,32 @@ def grafico_media_cra_periodo(dataframe):
 
 def grafico_situacao_matricula_periodo_ingresso(dataframe):
     data = (
-        dataframe.groupby(["situacao_matricula_simplificada", "periodo_ingresso_ufrj"])
+        dataframe.groupby(["DS_SITUACAO", "DS_PERIODO_INGRESSO_UFRJ"])
         .size()
         .reset_index(name="quantidade")
     )
 
-    data.sort_values("periodo_ingresso_ufrj", inplace=True)
+    data.sort_values("DS_PERIODO_INGRESSO_UFRJ", inplace=True)
 
     # Calcula o total de cada período de ingresso
     total_por_periodo = (
-        data.groupby("periodo_ingresso_ufrj")["quantidade"]
+        data.groupby("DS_PERIODO_INGRESSO_UFRJ")["quantidade"]
         .sum()
         .reset_index(name="total")
     )
 
     # Junta os totais ao dataframe original
-    data = data.merge(total_por_periodo, on="periodo_ingresso_ufrj")
+    data = data.merge(total_por_periodo, on="DS_PERIODO_INGRESSO_UFRJ")
 
     fig = px.bar(
         data,
-        x="periodo_ingresso_ufrj",
+        x="DS_PERIODO_INGRESSO_UFRJ",
         y="quantidade",
-        color="situacao_matricula_simplificada",
+        color="DS_SITUACAO",
         labels={
             "quantidade": "Quantidade",
-            "periodo_ingresso_ufrj": "Período de Ingresso na UFRJ",
-            "situacao_matricula_simplificada": "Situação da Matrícula",
+            "DS_PERIODO_INGRESSO_UFRJ": "Período de Ingresso na UFRJ",
+            "DS_SITUACAO": "Situação da Matrícula",
         },
     )
 
@@ -135,21 +137,19 @@ def periodos_anteriores(periodo_atual, num_semestres):
 
 def metricas_atuais(df, periodo_atual):
     """Exibe as métricas atuais dos alunos."""
-    df_atual = df[df["periodo"] == periodo_atual]
+    df_atual = df[df["DS_PERIODO"] == periodo_atual]
 
     # Obter período anterior
     periodo_anterior = periodos_anteriores(periodo_atual, 1)
-    df_anterior = df[df["periodo"] == periodo_anterior]
+    df_anterior = df[df["DS_PERIODO"] == periodo_anterior]
 
     df_situacao = (
-        df_atual.groupby(["situacao_matricula_simplificada"])
-        .size()
-        .reset_index(name="quantidade")
+        df_atual.groupby(["DS_SITUACAO"]).size().reset_index(name="quantidade")
     )
-    df_genero = df_atual.groupby(["sexo"]).size().reset_index(name="quantidade")
+    # df_genero = df_atual.groupby(["DS_SEXO"]).size().reset_index(name="quantidade")
 
-    media_enem_atual = round(df_atual["nota_enem"].mean(), 2)
-    media_enem_anterior = round(df_anterior["nota_enem"].mean(), 2)
+    media_enem_atual = round(df_atual["VL_NOTA_ENEM"].mean(), 2)
+    media_enem_anterior = round(df_anterior["VL_NOTA_ENEM"].mean(), 2)
 
     # Calcular a variação percentual
     if media_enem_anterior != 0:
@@ -159,14 +159,13 @@ def metricas_atuais(df, periodo_atual):
     else:
         variacao_enem = 0
 
-    quant_ativa = df_situacao[
-        df_situacao["situacao_matricula_simplificada"] == "Ativa"
-    ]["quantidade"].values[0]
-    quant_trancado = df_situacao[
-        df_situacao["situacao_matricula_simplificada"] == "Trancada"
-    ]["quantidade"].values[0]
-
-    media_idade_atual = int(df_atual["idade"].mean())
+    quant_ativa = df_situacao[df_situacao["DS_SITUACAO"] == "Ativa"][
+        "quantidade"
+    ].values[0]
+    quant_trancado = df_situacao[df_situacao["DS_SITUACAO"] == "Trancada"][
+        "quantidade"
+    ].values[0]
+    media_idade_atual = int(df_atual["VL_IDADE_CURSO_ATUAL"].mean())
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Ativos", quant_ativa)
@@ -180,8 +179,10 @@ def metricas_atuais(df, periodo_atual):
     D_ALUNO,
     D_DISCIPLINA,
     D_CURSO,
+    D_SITUACAO,
     F_MATRICULA_ALUNO,
     F_SITUACAO_PERIODO,
+    F_DESEMPENHO_ACADEMICO,
     PERIODO_ATUAL,
 ) = carregar_dados()
 
@@ -191,14 +192,19 @@ st.markdown(f"Situação Atual dos alunos.")
 
 # Combina os dataframes
 df_situacao_matricula = pd.merge(
-    F_MATRICULA_ALUNO, D_PERIODO, on="sk_d_periodo", how="inner"
+    F_MATRICULA_ALUNO, D_PERIODO, on="SK_D_PERIODO", how="left"
 )
 df_situacao_matricula = pd.merge(
-    df_situacao_matricula, D_ALUNO, on="sk_d_aluno", how="inner"
+    df_situacao_matricula, D_ALUNO, on="SK_D_ALUNO", how="left"
 )
 
+df_situacao_matricula = pd.merge(
+    df_situacao_matricula, D_SITUACAO, on="SK_D_SITUACAO", how="left"
+)
+
+# Fato Periodo
 df_situacao_periodo = pd.merge(
-    F_SITUACAO_PERIODO, D_PERIODO, on="sk_d_periodo", how="inner"
+    F_SITUACAO_PERIODO, D_PERIODO, on="SK_D_PERIODO", how="left"
 )
 
 with st.container():
