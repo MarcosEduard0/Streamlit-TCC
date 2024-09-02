@@ -1,6 +1,10 @@
 import streamlit as st
+from PIL import Image
 
 st.set_page_config(layout="wide")
+
+img = Image.open("images/logo_horizontal.png")
+st.image(img)
 
 # Exibindo o logo
 st.logo(image="images/logo_horizontal.png", icon_image="images/logo_ic.png")
