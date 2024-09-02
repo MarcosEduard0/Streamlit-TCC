@@ -3,26 +3,26 @@ from PIL import Image
 
 st.set_page_config(layout="wide")
 
-import os
+# import os
 
-# Caminho para o diretório que você quer listar (neste caso, a raiz do seu projeto)
-caminho = "/mount/src/streamlit-tcc/"
+# # Caminho para o diretório que você quer listar (neste caso, a raiz do seu projeto)
+# caminho = "/mount/src/streamlit-tcc/"
 
-# Listar os arquivos e diretórios dentro do caminho
-try:
-    arquivos_e_diretorios = os.listdir(caminho)
-    st.write("Conteúdo do diretório:")
-    for item in arquivos_e_diretorios:
-        print(item)
-except FileNotFoundError as e:
-    st.write(f"Erro: {e}")
+# # Listar os arquivos e diretórios dentro do caminho
+# try:
+#     arquivos_e_diretorios = os.listdir(caminho)
+#     st.write("Conteúdo do diretório:")
+#     for item in arquivos_e_diretorios:
+#         st.write(item)
+# except FileNotFoundError as e:
+#     st.write(f"Erro: {e}")
 
-
-img = Image.open("images/logo_horizontal.png")
-st.image(img)
 
 # Exibindo o logo
-st.logo(image="images/logo_horizontal.png", icon_image="images/logo_ic.png")
+st.logo(
+    image="streamlit/images/logo_horizontal.png",
+    icon_image="streamlit/images/logo_ic.png",
+)
 
 # Definindo as páginas
 home = st.Page(
