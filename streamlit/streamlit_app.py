@@ -1,10 +1,4 @@
 import streamlit as st
-import os
-
-
-# Definindo caminhos de imagem
-logo_path = os.path.join("images", "ovo.png")
-icon_image_path = os.path.join("images", "logo_ic.png")
 
 st.set_page_config(layout="wide")
 
