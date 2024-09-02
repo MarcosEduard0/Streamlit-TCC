@@ -11,30 +11,65 @@ def extrair_dados_database(nome_arquivo, camada):
 
 
 @st.cache_data
-def carregar_dados():
-    """Carrega os dados dos arquivos CSV."""
-    d_periodo = extrair_dados_database("d_periodo.parquet", "gold")
-    d_aluno = extrair_dados_database("d_aluno.parquet", "gold")
-    d_disciplina = extrair_dados_database("d_disciplina.parquet", "gold")
-    d_curso = extrair_dados_database("d_curso.parquet", "gold")
-    d_situacao = extrair_dados_database("d_situacao.parquet", "gold")
-    f_matricula_aluno = extrair_dados_database("f_situacao_metricula.parquet", "gold")
-    f_situacao_periodo = extrair_dados_database("f_situacao_periodo.parquet", "gold")
-    f_desempenho_academico = extrair_dados_database(
-        "f_desempenho_academico.parquet", "gold"
-    )
-    periodo_atual = d_aluno.DS_PERIODO_INGRESSO_UFRJ.max()
-    return (
-        d_periodo,
-        d_aluno,
-        d_disciplina,
-        d_curso,
-        d_situacao,
-        f_matricula_aluno,
-        f_situacao_periodo,
-        f_desempenho_academico,
-        periodo_atual,
-    )
+def carregar_dados(datasets=None):
+    """
+    Carrega os dados dos arquivos Parquet especificados pelo usuário.
+
+    Args:
+        datasets (list, optional): Lista de nomes dos datasets a serem carregados.
+                                   Se None, todos os datasets serão carregados.
+
+    Returns:
+        dict: Dicionário onde as chaves são os nomes dos datasets e os valores são os DataFrames carregados.
+    """
+    # Dicionário mapeando nomes de datasets para os respectivos arquivos Parquet
+    arquivos_parquet = {
+        "d_periodo": "d_periodo.parquet",
+        "d_aluno": "d_aluno.parquet",
+        "d_disciplina": "d_disciplina.parquet",
+        "d_curso": "d_curso.parquet",
+        "d_situacao": "d_situacao.parquet",
+        "f_matricula_aluno": "f_situacao_metricula.parquet",
+        "f_situacao_periodo": "f_situacao_periodo.parquet",
+        "f_desempenho_academico": "f_desempenho_academico.parquet",
+    }
+
+    # Se nenhum dataset for especificado, carregar todos
+    if datasets is None:
+        datasets = arquivos_parquet.keys()
+
+    dados_carregados = {}
+    for dataset in datasets:
+        if dataset in arquivos_parquet:
+            dados_carregados[dataset] = extrair_dados_database(
+                arquivos_parquet[dataset], "gold"
+            )
+
+    # Calcula o período atual se 'd_aluno' foi carregado
+    if "d_aluno" in dados_carregados:
+        dados_carregados["periodo_atual"] = dados_carregados[
+            "d_aluno"
+        ].DS_PERIODO_INGRESSO_UFRJ.max()
+
+    return dados_carregados
+
+
+def calcular_periodo(periodo: str, delta: int) -> str:
+    ano, semestre = map(int, periodo.split("/"))
+
+    # Ajustar o semestre
+    novo_semestre = semestre + delta
+
+    # Ajustar o ano conforme necessário
+    while novo_semestre < 1:
+        ano -= 1
+        novo_semestre += 2
+
+    while novo_semestre > 2:
+        ano += 1
+        novo_semestre -= 2
+
+    return f"{ano}/{novo_semestre}"
 
 
 def merge_dataframes(

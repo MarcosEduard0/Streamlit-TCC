@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from utils.auxiliary_functions.all_auxiliary_functions import carregar_dados
+from utils.auxiliary_functions.all_auxiliary_functions import (
+    carregar_dados,
+    merge_dataframes,
+)
 
 # st.set_page_config(
 #     page_title="COAA - UFRJ",
@@ -174,38 +177,35 @@ def metricas_atuais(df, periodo_atual):
     col4.metric("Média Enem", media_enem_atual, f"{variacao_enem}%")
 
 
-(
-    D_PERIODO,
-    D_ALUNO,
-    D_DISCIPLINA,
-    D_CURSO,
-    D_SITUACAO,
-    F_MATRICULA_ALUNO,
-    F_SITUACAO_PERIODO,
-    F_DESEMPENHO_ACADEMICO,
-    PERIODO_ATUAL,
-) = carregar_dados()
+dados = carregar_dados(
+    datasets=[
+        "d_aluno",
+        "d_periodo",
+        "d_situacao",
+        "f_matricula_aluno",
+        "f_situacao_periodo",
+    ]
+)
+D_PERIODO = dados.get("d_periodo")
+D_ALUNO = dados.get("d_aluno")
+D_SITUACAO = dados.get("d_situacao")
+F_MATRICULA_ALUNO = dados.get("f_matricula_aluno")
+F_SITUACAO_PERIODO = dados.get("f_situacao_periodo")
+PERIODO_ATUAL = dados.get("periodo_atual")
 
 st.header("Sistema de Análises Acadêmica")
 st.subheader(f"Perído Atual: {PERIODO_ATUAL}")
 st.markdown(f"Situação Atual dos alunos.")
 
-# Combina os dataframes
-df_situacao_matricula = pd.merge(
-    F_MATRICULA_ALUNO, D_PERIODO, on="SK_D_PERIODO", how="left"
-)
-df_situacao_matricula = pd.merge(
-    df_situacao_matricula, D_ALUNO, on="SK_D_ALUNO", how="left"
-)
 
-df_situacao_matricula = pd.merge(
-    df_situacao_matricula, D_SITUACAO, on="SK_D_SITUACAO", how="left"
-)
+# Criar tabela Fato Matricula Aluno
+dimensions = [D_PERIODO, D_ALUNO, D_SITUACAO]
+df_situacao_matricula = merge_dataframes(dimensions, F_MATRICULA_ALUNO)
+
 
 # Fato Periodo
-df_situacao_periodo = pd.merge(
-    F_SITUACAO_PERIODO, D_PERIODO, on="SK_D_PERIODO", how="left"
-)
+dimensions = [D_PERIODO]
+df_situacao_periodo = merge_dataframes(dimensions, F_SITUACAO_PERIODO)
 
 with st.container():
     metricas_atuais(df_situacao_matricula, PERIODO_ATUAL)

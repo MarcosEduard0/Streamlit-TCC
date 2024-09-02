@@ -16,7 +16,7 @@ from utils.auxiliary_functions.all_auxiliary_functions import (
 # -----------------------------------------------------------
 
 
-def obter_ultimo_cra(lista_cra):
+def obter_ultimo_cr(lista_cr):
     """
     Obtém o último valor de CR acumulado de uma lista de CRs.
 
@@ -26,8 +26,8 @@ def obter_ultimo_cra(lista_cra):
     Returns:
         float: O último CR acumulado da lista ou NaN se a lista estiver vazia.
     """
-    if lista_cra:
-        return lista_cra[-1]
+    if lista_cr:
+        return lista_cr[-1]
     else:
         return np.nan
 
@@ -64,12 +64,55 @@ def processar_dados_tabelas(df_situacao_periodo, df_situacao_matricula):
 
     tabela = situacao_atual.merge(result, on="DS_MATRICULA_DRE", how="inner")
 
-    tabela["CR_ACUMULADO_ATUAL"] = tabela["lista_cr_acumulado"].apply(obter_ultimo_cra)
+    tabela["CR_ACUMULADO_ATUAL"] = tabela["lista_cr_acumulado"].apply(obter_ultimo_cr)
+    tabela["CR_ATUAL"] = tabela["lista_cr_periodo"].apply(obter_ultimo_cr)
 
     return tabela
 
 
-def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula):
+def aplicar_filtros(
+    df, text_search, cr_range, cra_range, situacao_selecionada, modalidade_selecionada
+):
+    """
+    Aplica filtros ao DataFrame com base nos parâmetros fornecidos.
+
+    Args:
+        df (DataFrame): DataFrame original a ser filtrado.
+        text_search (str): Texto de pesquisa para nome ou DRE.
+        cr_range (tuple): Faixa de CR acumulado.
+        situacao_selecionada (list): Lista de situações de matrícula selecionadas.
+        modalidade_selecionada (list): Lista de modalidades de cota selecionadas.
+
+    Returns:
+        DataFrame: DataFrame filtrado de acordo com os parâmetros fornecidos.
+    """
+    # Filtragem por DRE ou Nome
+    if text_search.isdigit():
+        df = df[df["DS_MATRICULA_DRE"].astype(str).str.startswith(text_search)]
+    elif text_search:
+        df = df[df["DS_NOME_ALUNO"].str.contains(text_search, case=False, na=False)]
+
+    # Filtragem por situação da matrícula
+    if situacao_selecionada:
+        df = df[df["DS_SITUACAO"].isin(situacao_selecionada)]
+
+    # Filtragem por modalidade de cota
+    if modalidade_selecionada:
+        df = df[df["DS_MODALIDADE_COTA"].isin(modalidade_selecionada)]
+
+    # Filtragem por intervalo de CR do periodo
+    df = df[(df["CR_ATUAL"] >= cr_range[0]) & (df["CR_ATUAL"] <= cr_range[1])]
+
+    # Filtragem por intervalo de CR acumulado
+    df = df[
+        (df["CR_ACUMULADO_ATUAL"] >= cra_range[0])
+        & (df["CR_ACUMULADO_ATUAL"] <= cra_range[1])
+    ]
+
+    return df
+
+
+def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula, periodo_atual):
     """
     Exibe a listagem de alunos com opções de filtragem e pesquisa na interface Streamlit.
 
@@ -81,59 +124,59 @@ def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula):
 
     # Criação de campos de pesquisa e filtragem
     with st.container():
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         with col1:
             text_search = st.text_input("Pesquisar", placeholder="Digite o Nome ou DRE")
         with col2:
             situacoes_matricula = df["DS_SITUACAO"].unique()
-            option = st.multiselect(
+            situacao_selecionada = st.multiselect(
                 "Situação da Matrícula",
                 situacoes_matricula,
                 placeholder="Selecione as opções",
             )
 
     with st.container():
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns([0.25, 0.25, 0.5])
         with col1:
-            cr_range = st.slider("CR Acumulado Atual", 0.0, 10.0, (0.0, 10.0))
-
+            cra_range = st.slider("CR Acumulado Atual", 0.0, 10.0, (0.0, 10.0))
         with col2:
-            conta = df["DS_MODALIDADE_COTA"].unique()
-            option = st.multiselect(
+            cr_range = st.slider("CR Peíodo Atual", 0.0, 10.0, (0.0, 10.0))
+
+        with col3:
+            modalidades_cota = df["DS_MODALIDADE_COTA"].unique()
+            modalidade_selecionada = st.multiselect(
                 "Modalidade de Cota",
-                conta,
+                modalidades_cota,
                 placeholder="Selecione as opções",
             )
 
-    # Filtragem dos dados com base nos inputs do usuário
-    if text_search.isdigit():
-        df_search = df[df["DS_MATRICULA_DRE"].astype(str).str.startswith(text_search)]
-    elif text_search:
-        df_search = df[
-            df["DS_NOME_ALUNO"].str.contains(text_search, case=False, na=False)
-        ]
-    else:
-        df_search = df  # Exibe o dataframe completo se não houver pesquisa de texto
-
-    # st.write(df_search)
-
-    # Filtra pelo intervalo de CR acumulado
-    df_search = df_search[
-        (df_search["CR_ACUMULADO_ATUAL"] >= cr_range[0])
-        & (df_search["CR_ACUMULADO_ATUAL"] <= cr_range[1])
-    ]
-
-    # Aplica filtro do período atual se não houver nenhum outro filtro
-    if text_search == "" and cr_range == (0.0, 10.0):
-        df_search = df_search[df_search["DS_PERIODO"] == PERIODO_ATUAL]
-
-    df_search["DS_MATRICULA_DRE"] = df_search["DS_MATRICULA_DRE"].apply(
-        lambda dre: f"aluno_individual?dre={dre}"
+    # Aplicar os filtros ao DataFrame
+    df_filtrado = aplicar_filtros(
+        df,
+        text_search,
+        cr_range,
+        cra_range,
+        situacao_selecionada,
+        modalidade_selecionada,
     )
 
+    # Aplica filtro do período atual se não houver nenhum outro filtro
+    if (
+        not text_search
+        and cra_range == (0.0, 10.0)
+        and cr_range == (0.0, 10.0)
+        and not situacao_selecionada
+        and not modalidade_selecionada
+    ):
+        df_filtrado = df_filtrado[df_filtrado["DS_PERIODO"] == periodo_atual]
+
+    # Cria um link a partir do DRE do aluno
+    df_filtrado["DS_MATRICULA_DRE"] = df_filtrado["DS_MATRICULA_DRE"].apply(
+        lambda dre: f"aluno_individual?dre={dre}"
+    )
     # Exibição da tabela com os dados filtrados
     st.dataframe(
-        df_search,
+        df_filtrado,
         use_container_width=True,
         selection_mode=["single-row"],
         column_order=(
@@ -141,7 +184,8 @@ def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula):
             "DS_NOME_ALUNO",
             "VL_IDADE_INGRESSO",
             "DS_CURSO_INGRESSO_UFRJ",
-            "SITUACAO_MATRICULA",
+            "DS_MODALIDADE_COTA",
+            "DS_SITUACAO",
             "lista_cr_periodo",
             "lista_cr_acumulado",
         ),
@@ -152,12 +196,8 @@ def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula):
                 "Matrícula DRE",
                 display_text="aluno_individual\\?dre=([^&\\s]*)",
             ),
-            # "DS_MATRICULA_DRE": st.column_config.NumberColumn(
-            #     "DRE",
-            #     help="Matrícula do Aluno",
-            #     format="%d",
-            # ),
-            "SITUACAO_MATRICULA": "Situação da Matrícula",
+            "DS_MODALIDADE_COTA": "Modalidade de Cota",
+            "DS_SITUACAO": "Situação da Matrícula",
             "DS_CURSO_INGRESSO_UFRJ": "Curso de Ingresso",
             "lista_cr_acumulado": st.column_config.AreaChartColumn(
                 "CR Acumulado", y_min=0, y_max=10
@@ -173,17 +213,23 @@ def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula):
 st.markdown("# Alunos")
 
 # Carregamento dos dados
-(
-    D_PERIODO,
-    D_ALUNO,
-    D_DISCIPLINA,
-    D_CURSO,
-    D_SITUACAO,
-    F_MATRICULA_ALUNO,
-    F_SITUACAO_PERIODO,
-    F_DESEMPENHO_ACADEMICO,
-    PERIODO_ATUAL,
-) = carregar_dados()
+dados = carregar_dados(
+    datasets=[
+        "d_aluno",
+        "d_curso",
+        "d_periodo",
+        "d_situacao",
+        "f_matricula_aluno",
+        "f_situacao_periodo",
+    ]
+)
+D_PERIODO = dados.get("d_periodo")
+D_ALUNO = dados.get("d_aluno")
+D_CURSO = dados.get("d_curso")
+D_SITUACAO = dados.get("d_situacao")
+F_MATRICULA_ALUNO = dados.get("f_matricula_aluno")
+F_SITUACAO_PERIODO = dados.get("f_situacao_periodo")
+PERIODO_ATUAL = dados.get("periodo_atual")
 
 # Criar tabela Fato Matricula Aluno
 dimensions = [D_PERIODO, D_ALUNO, D_CURSO, D_SITUACAO]
@@ -194,4 +240,4 @@ dimensions_periodo = [D_ALUNO, D_PERIODO]
 df_situacao_periodo = merge_dataframes(dimensions_periodo, F_SITUACAO_PERIODO)
 
 # Criar tabela com a listagem de alunos
-listagem_de_alunos(df_situacao_periodo, df_situacao_matricula)
+listagem_de_alunos(df_situacao_periodo, df_situacao_matricula, PERIODO_ATUAL)

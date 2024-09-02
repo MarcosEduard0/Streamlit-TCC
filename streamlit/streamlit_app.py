@@ -31,11 +31,18 @@ individual_disciplina_page = st.Page(
     icon=":material/search:",
 )
 
+base_dados = st.Page(
+    "pages/base/base_dados.py",
+    title="Base de Dados",
+    icon=":material/search:",
+)
+
 # Navegação
 pages = {
     "Geral": [home],
     "Alunos": [aluno_home, aluno_individual_page],
     "Disciplinas": [disciplinas_page, individual_disciplina_page],
+    "Base de Dados": [base_dados],
 }
 
 # Inicializando a navegação
