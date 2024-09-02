@@ -9,7 +9,7 @@ icon_image_path = os.path.join("images", "logo_small.png")
 st.set_page_config(layout="wide")
 
 # Exibindo o logo
-st.logo(image=logo_path, icon_image=icon_image_path)
+# st.logo(image=logo_path, icon_image=icon_image_path)
 
 # Definindo as páginas
 home = st.Page(
