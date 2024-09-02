@@ -4,12 +4,12 @@ import os
 
 # Definindo caminhos de imagem
 logo_path = os.path.join("images", "ovo.png")
-icon_image_path = os.path.join("images", "logo_small.png")
+icon_image_path = os.path.join("images", "logo_ic.png")
 
 st.set_page_config(layout="wide")
 
 # Exibindo o logo
-# st.logo(image=logo_path, icon_image=icon_image_path)
+st.logo(image="images/logo_horizontal.png", icon_image="images/logo_ic.png")
 
 # Definindo as páginas
 home = st.Page(
