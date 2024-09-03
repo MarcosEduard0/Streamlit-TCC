@@ -124,17 +124,15 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
 
 
 def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
-    # Filtra apenas os valores que podem ser convertidos para numérico
-    df_desempenho = desemenho_disciplinas[
-        pd.to_numeric(
-            desemenho_disciplinas["VL_GRAU_DISCIPLINA"], errors="coerce"
-        ).notnull()
-    ]
-
-    # Converte a coluna para numérico
-    df_desempenho["VL_GRAU_DISCIPLINA"] = pd.to_numeric(
-        df_desempenho["VL_GRAU_DISCIPLINA"]
+    # Converte a coluna para numérico, substituindo valores não convertíveis por NaN
+    desemenho_disciplinas["VL_GRAU_DISCIPLINA"] = pd.to_numeric(
+        desemenho_disciplinas["VL_GRAU_DISCIPLINA"], errors="coerce"
     )
+
+    # Filtra apenas os valores numéricos
+    df_desempenho = desemenho_disciplinas[
+        desemenho_disciplinas["VL_GRAU_DISCIPLINA"].notnull()
+    ]
 
     # Agrupa e calcula a média
     df_disciplina_agrupado = (
