@@ -10,7 +10,7 @@ from utils.auxiliary_functions.all_auxiliary_functions import (
 )
 
 
-def criar_grafico_CR(df, coluna_valores, titulo=""):
+def criar_grafico_CR(df, coluna_valores, titulo="", y_min=-1, y_max=11):
     fig = go.Figure()
 
     # Adicionar a linha com os dados do CR
@@ -26,12 +26,14 @@ def criar_grafico_CR(df, coluna_valores, titulo=""):
         )
     )
 
+    # Define os limites do eixo Y, se especificados
     fig.update_layout(
         title=titulo,
         xaxis_title="Período",
         yaxis_title="CR",
         showlegend=False,
         margin=dict(l=0, r=0, t=0, b=0),  # Remove as margens
+        yaxis=dict(range=[y_min, y_max]),
     )
 
     return st.plotly_chart(fig)
