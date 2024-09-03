@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import os
+
 from utils.auxiliary_functions.all_auxiliary_functions import (
     carregar_dados,
     merge_dataframes,
@@ -48,25 +50,32 @@ def grafico_de_crs(df):
 
 
 def dados_gerais_aluno(df_aluno, periodo_atual):
-    import os
 
+    # Define o caminho atual e o caminho para a pasta de imagens
     CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
     CAMINHO_IMG = os.path.abspath(os.path.join(CAMINHO_ATUAL, "../../images"))
 
+    # Filtra os dados do aluno para o período atual e converte para um dicionário
     df_aluno = df_aluno[df_aluno["DS_PERIODO"] == periodo_atual]
     df_aluno = df_aluno.to_dict("records")[0]
 
+    # Cria duas colunas: uma para a imagem do perfil e outra para os dados do aluno
     col1, col2 = st.columns([0.15, 0.85])
+
     with col1:
+        # Define o caminho da imagem do perfil com base no sexo do aluno
         imagem = (
-            f"{CAMINHO_IMG}/perfil_masculino_cat_3x4.jpg"
+            f"{CAMINHO_IMG}/perfil_masculino_cat_3x4.png"
             if df_aluno["DS_SEXO"] == "Masculino"
             else f"{CAMINHO_IMG}/perfil_feminino_cat_3x4.jpg"
         )
         st.image(imagem)
 
     with col2:
+        # Cria subcolunas para exibir os dados gerais do aluno
         subcol1, subcol2, subcol3, subcol4 = st.columns(4)
+
+        # Dados que serão exibidos em cada subcoluna
         columns_data = [
             (
                 subcol1,
@@ -106,6 +115,7 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
             ),
         ]
 
+    # Exibe os dados em cada subcoluna usando text_input (desabilitado para exibição apenas)
     for subcol, fields in columns_data:
         for label, value in fields:
             subcol.text_input(label, value, disabled=True)
@@ -255,17 +265,25 @@ def cabecalho_e_metricas(df_aluno, df_periodo_aluno, periodo_atual):
     df_aluno = df_aluno[df_aluno["DS_PERIODO"] == periodo_atual]
     df_aluno = df_aluno.to_dict("records")[0]
 
-    # Seleciona o último e o penúltimo período para calcular a variação
-    df_ultimo_periodo = df_periodo_aluno.iloc[0]
-    df_penultimo_periodo = df_periodo_aluno.iloc[1]
+    # Verifica se existem pelo menos dois períodos para calcular a variação
+    if len(df_periodo_aluno) > 1:
+        # Seleciona o último e o penúltimo período para calcular a variação
+        df_ultimo_periodo = df_periodo_aluno.iloc[0]
+        df_penultimo_periodo = df_periodo_aluno.iloc[1]
 
-    # Calcula a variação do CRA e do CR do período
-    cra_variacao = (
-        df_ultimo_periodo["VL_CR_ACUMULADO"] - df_penultimo_periodo["VL_CR_ACUMULADO"]
-    )
-    cr_variacao = (
-        df_ultimo_periodo["VL_CR_PERIODO"] - df_penultimo_periodo["VL_CR_PERIODO"]
-    )
+        # Calcula a variação do CRA e do CR do período
+        cra_variacao = (
+            df_ultimo_periodo["VL_CR_ACUMULADO"]
+            - df_penultimo_periodo["VL_CR_ACUMULADO"]
+        )
+        cr_variacao = (
+            df_ultimo_periodo["VL_CR_PERIODO"] - df_penultimo_periodo["VL_CR_PERIODO"]
+        )
+    else:
+        # Se houver apenas um período, não há variação
+        df_ultimo_periodo = df_periodo_aluno.iloc[0]
+        cra_variacao = None
+        cr_variacao = None
 
     # Exibe as informações do aluno e as métricas calculadas
     st.header(df_aluno["DS_NOME_ALUNO"], divider="rainbow")
@@ -275,14 +293,16 @@ def cabecalho_e_metricas(df_aluno, df_periodo_aluno, periodo_atual):
     col2.metric(
         "CR Acumulado",
         df_ultimo_periodo["VL_CR_ACUMULADO"],
-        f"{cra_variacao:.2f}",
+        f"{cra_variacao:.2f}" if cra_variacao is not None else "-",
     )
     col3.metric(
         "CR do Período",
         df_ultimo_periodo["VL_CR_PERIODO"],
-        f"{cr_variacao:.2f}",
+        f"{cr_variacao:.2f}" if cr_variacao is not None else "-",
     )
-    col4.metric("Quant. Períodos Integralizados", 5)  # Atualize conforme necessário
+    col4.metric(
+        "Quant. Períodos Integralizados", len(df_periodo_aluno)
+    )  # Atualize conforme necessário
     st.markdown("\n")
 
 
