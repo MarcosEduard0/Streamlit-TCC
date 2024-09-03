@@ -1,12 +1,27 @@
 import streamlit as st
-from PIL import Image
+import os
 
 st.set_page_config(layout="wide")
 
+CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
+
+# Caminho para o diretório que você quer listar (neste caso, a raiz do seu projeto)
+caminho = "/mount/src/streamlit-tcc/"
+
+# Listar os arquivos e diretórios dentro do caminho
+try:
+    arquivos_e_diretorios = os.listdir(caminho)
+    st.write("Conteúdo do diretório:")
+    for item in arquivos_e_diretorios:
+        st.write(item)
+except FileNotFoundError as e:
+    st.write(f"Erro: {e}")
+
+
 # Exibindo o logo
 st.logo(
-    image="streamlit/images/horizontal_blue.png",
-    icon_image="streamlit/images/icon_blue.png",
+    image=f"{CAMINHO_ATUAL}/images/horizontal_blue.png",
+    icon_image=f"{CAMINHO_ATUAL}/images/icon_blue.png",
 )
 
 # Definindo as páginas
