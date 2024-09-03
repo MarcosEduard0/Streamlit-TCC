@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 from utils.auxiliary_functions.all_auxiliary_functions import (
     carregar_dados,
     merge_dataframes,
-    calcular_periodo,
 )
 
 
@@ -49,6 +48,10 @@ def grafico_de_crs(df):
 
 
 def dados_gerais_aluno(df_aluno, periodo_atual):
+    import os
+
+    CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
+    st.write(CAMINHO_ATUAL)
 
     df_aluno = df_aluno[df_aluno["DS_PERIODO"] == periodo_atual]
     df_aluno = df_aluno.to_dict("records")[0]
