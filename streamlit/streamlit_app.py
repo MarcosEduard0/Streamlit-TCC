@@ -4,7 +4,6 @@ import os
 st.set_page_config(layout="wide")
 
 CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
-
 # Exibindo o logo
 st.logo(
     image=f"{CAMINHO_ATUAL}/images/horizontal_blue.png",

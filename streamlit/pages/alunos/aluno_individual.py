@@ -51,7 +51,7 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
     import os
 
     CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
-    st.write(CAMINHO_ATUAL)
+    CAMINHO_IMG = os.path.abspath(os.path.join(CAMINHO_ATUAL, "../../images"))
 
     df_aluno = df_aluno[df_aluno["DS_PERIODO"] == periodo_atual]
     df_aluno = df_aluno.to_dict("records")[0]
@@ -59,9 +59,9 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
     col1, col2 = st.columns([0.15, 0.85])
     with col1:
         imagem = (
-            "streamlit/images/perfil_masculino_cat_3x4.jpg"
+            f"{CAMINHO_IMG}/perfil_masculino_cat_3x4.jpg"
             if df_aluno["DS_SEXO"] == "Masculino"
-            else "streamlit/images/perfil_feminino_cat_3x4.jpg"
+            else f"{CAMINHO_IMG}/perfil_feminino_cat_3x4.jpg"
         )
         st.image(imagem)
 
