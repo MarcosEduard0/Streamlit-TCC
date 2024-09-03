@@ -56,9 +56,9 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
     col1, col2 = st.columns([0.15, 0.85])
     with col1:
         imagem = (
-            "streamlit/images/perfil_masculino_3x4.jpg"
+            "streamlit/images/perfil_masculino_cat_3x4.jpg"
             if df_aluno["DS_SEXO"] == "Masculino"
-            else "streamlit/images/perfil_feminino_3x4.jpg"
+            else "streamlit/images/perfil_feminino_cat_3x4.jpg"
         )
         st.image(imagem)
 
