@@ -57,8 +57,8 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
     CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
     CAMINHO_IMG = os.path.abspath(os.path.join(CAMINHO_ATUAL, "../../images"))
 
-    # Filtra os dados do aluno para o período atual e converte para um dicionário
-    df_aluno = df_aluno[df_aluno["DS_PERIODO"] == periodo_atual]
+    # Filtra o DataFrame para manter apenas o período atual (maior valor de DS_PERIODO)
+    df_aluno = df_aluno[df_aluno["DS_PERIODO"] == df_aluno["DS_PERIODO"].max()]
     df_aluno = df_aluno.to_dict("records")[0]
 
     # Cria duas colunas: uma para a imagem do perfil e outra para os dados do aluno
@@ -261,8 +261,9 @@ def cabecalho_e_metricas(df_aluno, df_periodo_aluno, periodo_atual):
     ]
     df_periodo_aluno = df_periodo_aluno.sort_values("DS_PERIODO", ascending=False)
 
-    # Filtra os dados do aluno para o período atual
-    df_aluno = df_aluno[df_aluno["DS_PERIODO"] == periodo_atual]
+    # Filtra o DataFrame para manter apenas o período atual (maior valor de DS_PERIODO)
+    df_aluno = df_aluno[df_aluno["DS_PERIODO"] == df_aluno["DS_PERIODO"].max()]
+
     df_aluno = df_aluno.to_dict("records")[0]
 
     # Verifica se existem pelo menos dois períodos para calcular a variação
@@ -301,7 +302,7 @@ def cabecalho_e_metricas(df_aluno, df_periodo_aluno, periodo_atual):
         f"{cr_variacao:.2f}" if cr_variacao is not None else "-",
     )
     col4.metric(
-        "Quant. Períodos Integralizados", len(df_periodo_aluno)
+        "Quant. Períodos Integralizados", df_aluno["VL_PERIODOS_INTEGRALIZADOS"]
     )  # Atualize conforme necessário
     st.markdown("\n")
 

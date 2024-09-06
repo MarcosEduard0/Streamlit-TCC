@@ -177,52 +177,147 @@ def metricas_atuais(df, periodo_atual):
     col4.metric("Média Enem", media_enem_atual, f"{variacao_enem}%")
 
 
-dados = carregar_dados(
-    datasets=[
-        "d_aluno",
-        "d_periodo",
-        "d_situacao",
-        "f_matricula_aluno",
-        "f_situacao_periodo",
+# Função para aplicar a regra 1: Periodo maior que 14
+def obter_regra_1(df_aluno):
+    df_alunos_regra_1 = df_aluno[df_aluno["VL_PERIODOS_INTEGRALIZADOS"] > 14][
+        ["DS_MATRICULA_DRE", "DS_NOME_ALUNO", "DS_SITUACAO"]
+    ].reset_index(drop=True)
+    df_alunos_regra_1["REGRA"] = 1
+    return df_alunos_regra_1
+
+
+# Função para identificar alunos com 3 períodos consecutivos com VL_CR_ACUMULADO < 3
+def filtra_alunos_consecutivos(df):
+    df = df.sort_values(by="DS_PERIODO", ascending=False)
+
+    # Verifica se existem pelo menos 3 períodos
+    if len(df) < 3:
+        return pd.DataFrame()
+
+    # Seleciona os três últimos períodos
+    df_ultimos_periodos = df.head(3)
+
+    # Verifica se os três últimos VL_CR_ACUMULADO são menores que 3
+    if (df_ultimos_periodos["VL_CR_ACUMULADO"] < 3).all():
+        return df_ultimos_periodos
+    else:
+        return pd.DataFrame()
+
+
+# Função para aplicar a regra 2: CRA menor que 3 consecutivos
+def obter_regra_2(df_aluno_ativos, df_situacao_periodo):
+    df_aluno_ativos = df_situacao_periodo.merge(
+        df_aluno_ativos, on="SK_D_ALUNO", how="inner"
+    )
+
+    df_alunos_regra_2 = (
+        df_aluno_ativos.groupby("DS_MATRICULA_DRE")
+        .apply(filtra_alunos_consecutivos)
+        .reset_index(drop=True)
+    )
+
+    df_alunos_regra_2 = (
+        df_alunos_regra_2[["DS_MATRICULA_DRE", "DS_NOME_ALUNO", "DS_SITUACAO"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
+    df_alunos_regra_2["REGRA"] = 2
+    return df_alunos_regra_2
+
+
+# Função principal para processar os dados de alunos ativos
+def processa_alunos_ativos(df_situacao_matricula):
+    df_aluno_ativos = df_situacao_matricula[
+        [
+            "SK_D_ALUNO",
+            "DS_MATRICULA_DRE",
+            "DS_NOME_ALUNO",
+            "VL_PERIODOS_INTEGRALIZADOS",
+            "DS_PERIODO",
+            "DS_SITUACAO",
+        ]
     ]
-)
-D_PERIODO = dados.get("d_periodo")
-D_ALUNO = dados.get("d_aluno")
-D_SITUACAO = dados.get("d_situacao")
-F_MATRICULA_ALUNO = dados.get("f_matricula_aluno")
-F_SITUACAO_PERIODO = dados.get("f_situacao_periodo")
-PERIODO_ATUAL = dados.get("periodo_atual")
+    df_aluno_ativos = df_aluno_ativos.sort_values(
+        by=["DS_MATRICULA_DRE", "DS_PERIODO"], ascending=[True, False]
+    ).drop("DS_PERIODO", axis=1)
 
-st.header("Sistema de Análises Acadêmica")
-st.subheader(f"Perído Atual: {PERIODO_ATUAL}")
-st.markdown(f"Situação Atual dos alunos.")
+    df_aluno_ativos = df_aluno_ativos.drop_duplicates(
+        subset="DS_MATRICULA_DRE", keep="first"
+    )
 
+    df_aluno_ativos = df_aluno_ativos[
+        df_aluno_ativos["DS_SITUACAO"].isin(["Ativa", "Trancada"])
+    ]
 
-# Criar tabela Fato Matricula Aluno
-dimensions = [D_PERIODO, D_ALUNO, D_SITUACAO]
-df_situacao_matricula = merge_dataframes(dimensions, F_MATRICULA_ALUNO)
+    return df_aluno_ativos
 
 
-# Fato Periodo
-dimensions = [D_PERIODO]
-df_situacao_periodo = merge_dataframes(dimensions, F_SITUACAO_PERIODO)
+def main():
 
-with st.container():
-    metricas_atuais(df_situacao_matricula, PERIODO_ATUAL)
-    st.write("---")
+    dados = carregar_dados(
+        datasets=[
+            "d_aluno",
+            "d_periodo",
+            "d_situacao",
+            "f_matricula_aluno",
+            "f_situacao_periodo",
+        ]
+    )
 
-with st.container():
-    col1, col2 = st.columns(2)
+    # Criar tabela Fato Matricula Aluno
+    dimensions = [dados.get("d_periodo"), dados.get("d_aluno"), dados.get("d_situacao")]
+    df_situacao_matricula = merge_dataframes(dimensions, dados.get("f_matricula_aluno"))
 
-    with col1:
-        st.subheader("Total de Alunos por Situação")
-        grafico_situacao_matricula_periodo(df_situacao_matricula)
+    # Fato Situação Periodo
+    dimensions = [dados.get("d_periodo")]
+    df_situacao_periodo = merge_dataframes(dimensions, dados.get("f_situacao_periodo"))
 
-    with col2:
-        st.subheader("Média CRA por Perído")
-        grafico_media_cra_periodo(df_situacao_periodo)
+    st.header("Sistema de Análises Acadêmica")
+    st.subheader(f"Perído Atual: {dados.get("periodo_atual")}")
+    st.markdown(f"Situação Atual dos alunos.")
 
-# Segundo container
-with st.container():
-    st.subheader("Análise de Matrícula Periodo de Ingresso")
-    grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula)
+    with st.container():
+        metricas_atuais(df_situacao_matricula, dados.get("periodo_atual"))
+        st.divider()
+
+    with st.container():
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Total de Alunos por Situação")
+            grafico_situacao_matricula_periodo(df_situacao_matricula)
+
+        with col2:
+            st.subheader("Média CRA por Perído")
+            grafico_media_cra_periodo(df_situacao_periodo)
+
+    # Segundo container
+    with st.container():
+        st.subheader("Análise de Matrícula Periodo de Ingresso")
+        grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula)
+        st.divider()
+
+    # Terceiro container
+    with st.container():
+        st.subheader("Alunos em situação de risco")
+
+        # Processamento dos alunos ativos
+        df_aluno_ativos = processa_alunos_ativos(df_situacao_matricula)
+
+        # Aplica a Regra 1
+        df_alunos_regra_1 = obter_regra_1(df_aluno_ativos)
+        st.dataframe(df_alunos_regra_1)
+        st.caption('''
+        Os critérios para que um aluno seja considerado em situação de risco são os seguintes:
+        - **Regra 1**: Períodos integralizados superior a 14.
+        - **Regra 2**: Três CRA consecutivos menores que 3.
+        - **Regra 3**: Quatro reprovações na mesma disciplina.
+        ''')
+
+        # Aplica a Regra 2
+        df_alunos_regra_2 = obter_regra_2(df_aluno_ativos, df_situacao_periodo)
+        st.dataframe(df_alunos_regra_2)
+
+
+main()
