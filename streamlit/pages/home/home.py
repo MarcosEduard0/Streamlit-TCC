@@ -262,6 +262,7 @@ def main():
             "d_situacao",
             "f_matricula_aluno",
             "f_situacao_periodo",
+            "f_desempenho_academico",
         ]
     )
 
@@ -272,6 +273,10 @@ def main():
     # Fato Situação Periodo
     dimensions = [dados.get("d_periodo")]
     df_situacao_periodo = merge_dataframes(dimensions, dados.get("f_situacao_periodo"))
+
+    # Fato Desemepnho Academico
+    dimensions = [dados.get("d_periodo"), dados.get("d_situacao")]
+    df_desempenho_academico = merge_dataframes(dimensions, dados.get("f_desempenho_academico"))
 
     st.header("Sistema de Análises Acadêmica")
     st.subheader(f"Perído Atual: {dados.get("periodo_atual")}")
@@ -318,6 +323,36 @@ def main():
         # Aplica a Regra 2
         df_alunos_regra_2 = obter_regra_2(df_aluno_ativos, df_situacao_periodo)
         st.dataframe(df_alunos_regra_2)
+
+
+
+        df_reprovacaoes = (
+        df_desempenho_academico[df_desempenho_academico["DS_SITUACAO_DETALHADA"] != "Aprovado"][['SK_D_ALUNO', 'SK_D_DISCIPLINA', 'DS_SITUACAO']]
+        )
+        st.write(df_reprovacaoes)
+        df_reprovacaoes = df_reprovacaoes.merge(df_aluno_ativos, on='SK_D_ALUNO', how='inner', suffixes=('_DISCIPLINA', '_MATRICULA'))
+        st.write(df_reprovacaoes)
+
+        reprovacao_agg = (
+                df_reprovacaoes.groupby(
+                    ["SK_D_DISCIPLINA", "DS_MATRICULA_DRE", "DS_NOME_ALUNO", "DS_SITUACAO_MATRICULA"]
+                )
+                .size()
+                .reset_index(name="QUANTIDADE_REPRO")
+                .sort_values("QUANTIDADE_REPRO", ascending=False)
+            )
+        reprovacao_agg = reprovacao_agg[reprovacao_agg['QUANTIDADE_REPRO'] > 3].drop(['SK_D_DISCIPLINA', 'QUANTIDADE_REPRO'], axis=1)
+        reprovacao_agg = reprovacao_agg.drop_duplicates()
+        st.dataframe(
+            reprovacao_agg,
+            column_config={
+                "CD_DISCIPLINA": "Código",
+                "DS_NOME_DISCIPLINA": "Disciplina",
+                "DS_SITUACAO": "Situação",
+                "QUANTIDADE_REPRO": "Total de Reprovação",
+            },
+            hide_index=True,
+        )
 
 
 main()
