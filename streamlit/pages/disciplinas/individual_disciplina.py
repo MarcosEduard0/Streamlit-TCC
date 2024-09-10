@@ -1,6 +1,14 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import plotly.express as px
+import plotly.graph_objects as go
+import os
+
+from utils.auxiliary_functions.all_auxiliary_functions import (
+    carregar_dados,
+    merge_dataframes,
+)
 
 # Dados
 data = {
@@ -103,3 +111,27 @@ chart_moda_nota = alt.Chart(df_moda_nota).mark_line(point=True).encode(
 )
 
 st.altair_chart(chart_moda_nota, use_container_width=True)
+
+def main():
+    # Carregamento dos dados
+    dados = carregar_dados(
+        datasets=[
+            "d_curso",
+            "d_periodo",
+            "d_disciplina",
+            "d_situacao",
+            "f_desempenho_academico",
+        ]
+    )
+    # Criar tabela Fato Desempenho Academico
+    df_desempenho_academico = merge_dataframes(
+        [
+            dados.get("d_periodo"),
+            dados.get("d_situacao"),
+            dados.get("d_disciplina"),
+        ],
+        dados.get("f_desempenho_academico")
+    )
+    st.dataframe(df_desempenho_academico)
+
+main()
