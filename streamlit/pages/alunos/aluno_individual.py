@@ -193,6 +193,7 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
             # st.subheader("Aprovações")
             st.dataframe(
                 df_aprovacaoes,
+                use_container_width=True,
                 column_order=(
                     "DS_PERIODO",
                     "CD_DISCIPLINA",
@@ -214,6 +215,7 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
             # st.subheader("Reprovações")
             st.dataframe(
                 df_reprovacaoes,
+                use_container_width=True,
                 column_order=(
                     "DS_PERIODO",
                     "CD_DISCIPLINA",
@@ -244,6 +246,7 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
             )
             st.dataframe(
                 reprovacao_agg,
+                use_container_width=True,
                 column_config={
                     "CD_DISCIPLINA": "Código",
                     "DS_NOME_DISCIPLINA": "Disciplina",
