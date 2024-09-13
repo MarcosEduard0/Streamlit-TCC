@@ -124,10 +124,41 @@ def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula, periodo_atual
 
     # Criação de campos de pesquisa e filtragem
     with st.container():
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns([0.5, 0.25, 0.25])
         with col1:
-            text_search = st.text_input("Pesquisar", placeholder="Digite o Nome ou DRE")
+            text_search = st.text_input(
+                "Pesquisar", placeholder="Digite o Nome ou DRE", key="dre_ou_nome"
+            )
         with col2:
+            lista_periodos = sorted(
+                df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"].unique()
+            )
+            ingresso_ufrj = st.select_slider(
+                "Período de Ingresso na UFRJ",
+                options=lista_periodos,
+                value=(
+                    lista_periodos[0],
+                    lista_periodos[-1],
+                ),  # Definir valor inicial como o primeiro e último período
+                key="periodo_ingresso_ufrj",
+            )
+        with col3:
+            lista_periodos = sorted(
+                df_situacao_matricula["DS_PERIODO_INGRESSO_CURSO_ATUAL"].unique()
+            )
+            ingresso_curso = st.select_slider(
+                "Período de Ingresso no Curso",
+                options=lista_periodos,
+                value=(
+                    lista_periodos[0],
+                    lista_periodos[-1],
+                ),  # Definir valor inicial como o primeiro e último período
+                key="periodo_ingresso_curso",
+            )
+
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
             situacoes_matricula = df["DS_SITUACAO"].unique()
             situacao_selecionada = st.multiselect(
                 "Situação da Matrícula",
@@ -135,19 +166,20 @@ def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula, periodo_atual
                 placeholder="Selecione as opções",
             )
 
-    with st.container():
-        col1, col2, col3 = st.columns([0.25, 0.25, 0.5])
-        with col1:
-            cra_range = st.slider("CR Acumulado Atual", 0.0, 10.0, (0.0, 10.0))
         with col2:
-            cr_range = st.slider("CR Peíodo Atual", 0.0, 10.0, (0.0, 10.0))
-
-        with col3:
             modalidades_cota = df["DS_MODALIDADE_COTA"].unique()
             modalidade_selecionada = st.multiselect(
                 "Modalidade de Cota",
                 modalidades_cota,
                 placeholder="Selecione as opções",
+            )
+
+        with col3:
+            cr_range = st.slider("CR Peíodo Atual", 0.0, 10.0, (0.0, 10.0), key="cr")
+
+        with col4:
+            cra_range = st.slider(
+                "CR Acumulado Atual", 0.0, 10.0, (0.0, 10.0), key="cra"
             )
 
     # Aplicar os filtros ao DataFrame

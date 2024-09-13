@@ -356,8 +356,6 @@ def main():
     dre = st.query_params.get("dre")
 
     if dre:
-        # with st.sidebar:
-        #     st.write("oi")
         df_situacao_matricula_filtrado = df_situacao_matricula[
             df_situacao_matricula["DS_MATRICULA_DRE"] == dre
         ]
@@ -375,6 +373,23 @@ def main():
         )
 
         dados_gerais_aluno(df_situacao_matricula_filtrado, dados.get("periodo_atual"))
+
+        with st.expander("Períodos Trancados"):
+            # Filtrar os períodos trancados
+            periodos_trancados = sorted(
+                df_situacao_matricula_filtrado[
+                    df_situacao_matricula_filtrado["DS_SITUACAO"] == "Trancada"
+                ]["DS_PERIODO"].values
+            )
+
+            # Verificar se há períodos trancados
+            if len(periodos_trancados) > 0:
+                # Exibir cada período trancado
+                for periodo in periodos_trancados:
+                    st.write(f"- {periodo}")
+            else:
+                st.write("Não há períodos trancados.")
+
         st.divider()
 
         grafico_de_crs(df_situacao_periodo_filtrado)
