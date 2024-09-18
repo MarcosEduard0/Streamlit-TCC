@@ -2,65 +2,112 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-# Dados
-data = {
-    'Disciplina': [
-        'Machine Learning', 'Computacao 1', 'Computacao 2', 'Inteligência Artificial', 
-        'Computadores e Sociedade', 'Machine Learning', 'Computacao 1', 'Computacao 2', 
-        'Inteligência Artificial', 'Computadores e Sociedade'
-    ],
-    'Professor': [
-        'Prof. A', 'Prof. B', 'Prof. C', 'Prof. D', 'Prof. A', 
-        'Prof. E', 'Prof. F', 'Prof. G', 'Prof. H', 'Prof. I'
-    ],
-    'Índice de Reprovação': [0.4, 0.2, 0.5, 0.3, 0.1, 0.3, 0.4, 0.6, 0.2, 0.4],
-    'Índice de Aprovação': [0.6, 0.8, 0.5, 0.7, 0.9, 0.7, 0.6, 0.4, 0.8, 0.6],
-    'Número de Alunos': [30, 25, 20, 40, 35, 25, 20, 30, 45, 40],
-    'Nota': [7.5, 8.0, 6.0, 7.0, 9.0, 8.0, 7.0, 5.0, 8.5, 6.5],
-    'Período': ['2021/1', '2021/1', '2021/1', '2022/1', '2022/2', '2022/1', '2022/1', '2021/2', '2022/2', '2021/2'],
-    'Trancamentos': [2, 1, 3, 2, 0, 1, 2, 3, 1, 2],
-    'Aluno': ['João', 'Pedro', 'João', 'Paula', 'Maria', 'Ana', 'Carlos', 'José', 'Clara', 'Lucas']
-}
-
-df = pd.DataFrame(data)
-
-
-# Adiciona um slider para selecionar o intervalo de períodos
-st.sidebar.subheader('Filtro de Período')
-periodos = sorted(df['Período'].unique())
-periodo_min, periodo_max = st.sidebar.select_slider(
-    'Selecione o intervalo de período:',
-    options=periodos,
-    value=(periodos[0], periodos[-1])
+from utils.auxiliary_functions.all_auxiliary_functions import (
+    carregar_dados,
+    merge_dataframes,
 )
 
-# Filtra o dataframe de acordo com o intervalo de períodos selecionado
-df_filtrado = df[(df['Período'] >= periodo_min) & (df['Período'] <= periodo_max)]
+def ordenar_periodos(periodos):
+    # Separar ano e semestre para ordenar
+    periodos_ordenados = sorted(periodos, key=lambda x: (int(x.split("/")[0]), int(x.split("/")[1])))
+    return periodos_ordenados
 
-# Gráficos de colunas: Disciplinas com maior índice de aprovação e reprovação
-df_aprovacao = df_filtrado.groupby('Disciplina')['Índice de Aprovação'].mean().reset_index()
-df_aprovacao['Índice de Aprovação'] = df_aprovacao['Índice de Aprovação'] * 100  # Convertendo para porcentagem
-df_aprovacao = df_aprovacao.sort_values(by='Índice de Aprovação', ascending=False)
+def main():
+    # Carregamento dos dados
+    dados = carregar_dados(
+        datasets=[
+            "d_curso",
+            "d_periodo",
+            "d_disciplina",
+            "d_situacao",
+            "f_desempenho_academico",
+        ]
+    )
+    
+    # Criar tabela Fato Desempenho Academico
+    df_desempenho_academico = merge_dataframes(
+        [
+            dados.get("d_periodo"),
+            dados.get("d_situacao"),
+            dados.get("d_disciplina"),
+        ],
+        dados.get("f_desempenho_academico")
+    )
 
-df_reprovacao = df_filtrado.groupby('Disciplina')['Índice de Reprovação'].mean().reset_index()
-df_reprovacao['Índice de Reprovação'] = df_reprovacao['Índice de Reprovação'] * 100  # Convertendo para porcentagem
-df_reprovacao = df_reprovacao.sort_values(by='Índice de Reprovação', ascending=False)
+    # Ordenar os períodos de forma cronológica
+    periodos_unicos = df_desempenho_academico["DS_PERIODO"].unique()
+    periodos_ordenados = ordenar_periodos(periodos_unicos)
 
+    # Filtrar por período letivo
+    periodo_letivo = st.selectbox(
+        "Selecione o período letivo",
+        options=periodos_ordenados,
+        index=periodos_ordenados.index("2019/1")
+    )
 
-st.subheader('Taxa de Aprovação por Disciplina (%)')
-bar_chart_aprovacao = alt.Chart(df_aprovacao).mark_bar().encode(
-    x=alt.X('Disciplina', sort='-y', axis=alt.Axis(labelAngle=315, labelFontSize=10)),
-    y='Índice de Aprovação'
-).properties(
-    title=''
-)
-st.altair_chart(bar_chart_aprovacao, use_container_width=True)
+    # Filtrar dados para o período selecionado
+    df_filtrado = df_desempenho_academico[df_desempenho_academico["DS_PERIODO"] == periodo_letivo]
 
-st.subheader('Taxa de Reprovação por Disciplina (%)')
-bar_chart_reprovacao = alt.Chart(df_reprovacao).mark_bar().encode(
-    x=alt.X('Disciplina', sort='-y', axis=alt.Axis(labelAngle=315, labelFontSize=10)),
-    y='Índice de Reprovação'
-).properties(
-    title=''
-)
-st.altair_chart(bar_chart_reprovacao, use_container_width=True)
+    # Filtrar apenas os aprovados
+    df_aprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] == "Aprovado"]
+
+    # Calcular a quantidade de aprovações por disciplina
+    aprovacao_por_disciplina = df_aprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Aprovados")
+
+    # Ordenar os dados da maior para a menor quantidade de aprovados
+    aprovacao_por_disciplina = aprovacao_por_disciplina.sort_values(by="Quantidade de Aprovados", ascending=False)
+
+    # Limitar para mostrar apenas as 10 disciplinas com mais aprovações
+    top_10_aprovacao = aprovacao_por_disciplina.head(10)
+
+    # Criar gráfico de barras
+    grafico_aprovacao = alt.Chart(top_10_aprovacao).mark_bar().encode(
+        x=alt.X("DS_NOME_DISCIPLINA:N", title="Disciplina", sort="-y", axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y("Quantidade de Aprovados:Q", title="Quantidade de Aprovados"),
+        tooltip=["DS_NOME_DISCIPLINA", "Quantidade de Aprovados"]
+    ).properties(
+        width=800, 
+        height=400,
+        title=f"Top 10 Taxa de Aprovação por Disciplina - Período {periodo_letivo}"
+    ).configure_axis(
+        labelFontSize=12,
+        titleFontSize=14
+    ).configure_view(
+        continuousWidth=800, 
+        continuousHeight=400
+    )
+
+    st.altair_chart(grafico_aprovacao, use_container_width=True)
+
+    # Filtrar apenas os reprovados (situações diferentes de "Aprovado")
+    df_reprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] != "Aprovado"]
+
+    # Calcular a quantidade de reprovações por disciplina
+    reprovacao_por_disciplina = df_reprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Reprovados")
+
+    # Ordenar os dados da maior para a menor quantidade de reprovados
+    reprovacao_por_disciplina = reprovacao_por_disciplina.sort_values(by="Quantidade de Reprovados", ascending=False)
+
+    # Limitar para mostrar apenas as 10 disciplinas com mais reprovações
+    top_10_reprovacao = reprovacao_por_disciplina.head(10)
+
+    # Criar gráfico de barras para reprovações
+    grafico_reprovacao = alt.Chart(top_10_reprovacao).mark_bar().encode(
+        x=alt.X("DS_NOME_DISCIPLINA:N", title="Disciplina", sort="-y", axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y("Quantidade de Reprovados:Q", title="Quantidade de Reprovados"),
+        tooltip=["DS_NOME_DISCIPLINA", "Quantidade de Reprovados"]
+    ).properties(
+        width=800, 
+        height=400,
+        title=f"Top 10 Taxa de Reprovação por Disciplina - Período {periodo_letivo}"
+    ).configure_axis(
+        labelFontSize=12,
+        titleFontSize=14
+    ).configure_view(
+        continuousWidth=800, 
+        continuousHeight=400
+    )
+
+    st.altair_chart(grafico_reprovacao, use_container_width=True)
+
+main()
