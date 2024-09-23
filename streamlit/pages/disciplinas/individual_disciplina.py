@@ -10,110 +10,13 @@ from utils.auxiliary_functions.all_auxiliary_functions import (
     merge_dataframes,
 )
 
-# Dados
-data = {
-    'Disciplina': [
-        'Machine Learning', 'Computacao 1', 'Computacao 2', 'Inteligência Artificial', 
-        'Computadores e Sociedade', 'Machine Learning', 'Computacao 1', 'Computacao 2', 
-        'Inteligência Artificial', 'Computadores e Sociedade',
-        'Machine Learning', 'Computacao 1', 'Computacao 2', 'Inteligência Artificial', 
-        'Computadores e Sociedade', 'Machine Learning', 'Computacao 1', 'Computacao 2', 
-        'Inteligência Artificial', 'Computadores e Sociedade'
-    ],
-    'Professor': [
-        'Prof. A', 'Prof. B', 'Prof. C', 'Prof. D', 'Prof. A', 
-        'Prof. E', 'Prof. F', 'Prof. G', 'Prof. H', 'Prof. I',
-        'Prof. A', 'Prof. B', 'Prof. C', 'Prof. D', 'Prof. A', 
-        'Prof. E', 'Prof. F', 'Prof. G', 'Prof. H', 'Prof. I'
-    ],
-    'Nota': [7.5, 8.0, 6.0, 7.0, 9.0, 8.0, 7.0, 5.0, 8.5, 6.5,
-             7.0, 6.5, 8.5, 7.0, 8.0, 7.5, 8.0, 6.0, 7.5, 8.0],
-    'Período': ['2021/1', '2021/1', '2021/1', '2022/1', '2022/2', '2022/1', '2022/1', '2021/2', '2022/2', '2021/2',
-                '2023/1', '2023/1', '2023/1', '2023/2', '2023/2', '2023/2', '2024/1', '2024/1', '2024/2', '2024/2'],
-    'Trancamentos': [2, 1, 3, 2, 0, 1, 2, 3, 1, 2, 1, 3, 2, 1, 2, 1, 2, 3, 1, 2],
-    'Aluno': ['João', 'Pedro', 'João', 'Paula', 'Maria', 'Ana', 'Carlos', 'José', 'Clara', 'Lucas',
-              'Marcos', 'Sofia', 'Gabriel', 'Fernanda', 'Ricardo', 'Bruna', 'Felipe', 'Eduarda', 'Rafael', 'Luiza']
-}
-
-df = pd.DataFrame(data)
-
-# Adiciona o atributo de aprovação
-df['Aprovação'] = df['Nota'].apply(lambda x: 'Aprovado' if x >= 7 else 'Reprovado')
-
-# Adiciona um slider para selecionar o intervalo de períodos
-st.sidebar.subheader('Filtro de Período')
-periodos = sorted(df['Período'].unique())
-periodo_min, periodo_max = st.sidebar.select_slider(
-    'Selecione o intervalo de período:',
-    options=periodos,
-    value=(periodos[0], periodos[-1])
-)
-
-# Filtra o dataframe de acordo com o intervalo de períodos selecionado
-df = df[(df['Período'] >= periodo_min) & (df['Período'] <= periodo_max)]
-
-st.title('Análise de Disciplinas')
-
-# Lista de disciplinas únicas para o autocomplete
-lista_disciplinas = df['Disciplina'].unique()
-
-# Filtro para a disciplina com autocomplete
-disciplina_selecionada = st.selectbox('Selecione a disciplina que deseja filtrar:', options=lista_disciplinas, index=0)
-
-# Filtrando a disciplina selecionada
-df_filtrado = df[df['Disciplina'] == disciplina_selecionada]
-
-# Primeiro componente: Gráfico de colunas com quantidade de aprovados e reprovados por período
-st.subheader(f'Aprovações e Reprovações em {disciplina_selecionada}')
-df_aprovacao = df_filtrado.groupby(['Período', 'Aprovação']).size().reset_index(name='Quantidade')
-
-chart_aprovacao = alt.Chart(df_aprovacao).mark_bar().encode(
-    x=alt.X('Período', axis=alt.Axis(labelAngle=0)),  # Rótulos do eixo X na horizontal
-    y='Quantidade',
-    color='Aprovação'
-).properties(
-    width=600,
-    height=400
-)
-
-st.altair_chart(chart_aprovacao, use_container_width=True)
-
-# Separador
-st.markdown('---')
-
-# Segundo componente: Gráficos de linhas
-st.subheader(f'Notas dos Alunos em {disciplina_selecionada}')
-
-# Média das Notas
-st.subheader('Média')
-df_media_nota = df_filtrado.groupby('Período')['Nota'].mean().reset_index()
-
-chart_media_nota = alt.Chart(df_media_nota).mark_line(point=True).encode(
-    x=alt.X('Período', axis=alt.Axis(labelAngle=0)),  # Rótulos do eixo X na horizontal
-    y='Nota'
-).properties(
-    width=600,
-    height=400
-)
-
-st.altair_chart(chart_media_nota, use_container_width=True)
-
-# Moda das Notas
-st.subheader('Moda')
-df_moda_nota = df_filtrado.groupby('Período')['Nota'].agg(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
-
-chart_moda_nota = alt.Chart(df_moda_nota).mark_line(point=True).encode(
-    x=alt.X('Período', axis=alt.Axis(labelAngle=0)),  # Rótulos do eixo X na horizontal
-    y='Nota'
-).properties(
-    width=600,
-    height=400
-)
-
-st.altair_chart(chart_moda_nota, use_container_width=True)
+# Função de ordenação de períodos
+def ordenar_periodos(periodos):
+    periodos_ordenados = sorted(periodos, key=lambda x: (int(x.split("/")[0]), int(x.split("/")[1])))
+    return periodos_ordenados
 
 def main():
-    # Carregamento dos dados
+    # Carregar dados
     dados = carregar_dados(
         datasets=[
             "d_curso",
@@ -123,6 +26,7 @@ def main():
             "f_desempenho_academico",
         ]
     )
+    
     # Criar tabela Fato Desempenho Academico
     df_desempenho_academico = merge_dataframes(
         [
@@ -132,6 +36,85 @@ def main():
         ],
         dados.get("f_desempenho_academico")
     )
-    st.dataframe(df_desempenho_academico)
+
+    # Obter lista de disciplinas únicas para a barra de pesquisa
+    disciplinas_unicas = df_desempenho_academico["DS_NOME_DISCIPLINA"].unique().tolist()
+    disciplinas_unicas.sort()  # Ordenar alfabeticamente
+
+    # Definir a disciplina padrão
+    disciplina_padrao = "Banco de Dados I"
+
+    # Barra de pesquisa com selectbox para selecionar a disciplina
+    disciplina_selecionada = st.selectbox(
+        "Pesquisar Disciplina",
+        options=disciplinas_unicas,
+        index=disciplinas_unicas.index(disciplina_padrao) if disciplina_padrao in disciplinas_unicas else 0
+    )
+
+    # Verifica se uma disciplina foi selecionada
+    if disciplina_selecionada:
+        
+        # Filtrar dados pela disciplina selecionada
+        df_filtrado_disciplina = df_desempenho_academico[
+            df_desempenho_academico["DS_NOME_DISCIPLINA"] == disciplina_selecionada
+        ]
+
+        # Filtrar períodos que não terminam com "/0"
+        periodos_filtrados = [periodo for periodo in df_filtrado_disciplina["DS_PERIODO"].unique() if not periodo.endswith("/0")]
+
+        # Ordenar os períodos de forma cronológica
+        periodos_ordenados = ordenar_periodos(periodos_filtrados)
+
+        # Seletor de intervalo de períodos
+        periodo_inicio, periodo_fim = st.select_slider(
+            "Selecione o intervalo de períodos",
+            options=periodos_ordenados,
+            value=(periodos_ordenados[0], periodos_ordenados[-1])
+        )
+
+        # Filtrar o DataFrame pelo intervalo de períodos
+        df_filtrado_periodo = df_filtrado_disciplina[
+            (df_filtrado_disciplina["DS_PERIODO"] >= periodo_inicio) &
+            (df_filtrado_disciplina["DS_PERIODO"] <= periodo_fim) &
+            (~df_filtrado_disciplina["DS_PERIODO"].str.endswith("/0"))
+        ]
+
+        # Verifica se há dados suficientes após o filtro para evitar gráficos vazios
+        if not df_filtrado_periodo.empty:
+            # Gráfico 1: Barra empilhada de aprovações e reprovações
+            # Contar aprovações e reprovações
+            df_filtrado_periodo["Aprovado"] = df_filtrado_periodo["DS_SITUACAO_DETALHADA"].apply(lambda x: 1 if x == "Aprovado" else 0)
+            df_filtrado_periodo["Reprovado"] = df_filtrado_periodo["DS_SITUACAO_DETALHADA"].apply(lambda x: 1 if x != "Aprovado" else 0)
+
+            # Agrupar por período e calcular totais de aprovados e reprovados
+            df_aprov_reprov = df_filtrado_periodo.groupby("DS_PERIODO")[["Aprovado", "Reprovado"]].sum()
+
+            if not df_aprov_reprov.empty:
+                st.bar_chart(df_aprov_reprov, color=["#0000FF","#FF0000"])
+            else:
+                st.warning("Sem dados de aprovação/reprovação disponíveis para os períodos selecionados.")
+
+            # Gráfico 2: Gráfico de linha com média do desempenho
+            df_filtrado_periodo["VL_DESEMPENHO"] = pd.to_numeric(df_filtrado_periodo["VL_DESEMPENHO"], errors="coerce")
+            media_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VL_DESEMPENHO"].mean()
+            media_desempenho_df = media_desempenho.reset_index(name="Média do Desempenho")
+
+            if not media_desempenho_df.empty:
+                st.line_chart(media_desempenho_df.set_index("DS_PERIODO"))
+            else:
+                st.warning("Sem dados de desempenho disponíveis para os períodos selecionados.")
+
+            # Gráfico 3: Gráfico de linha com moda do desempenho
+            moda_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VL_DESEMPENHO"].agg(lambda x: x.mode()[0] if not x.mode().empty else np.nan)
+            moda_desempenho_df = moda_desempenho.reset_index(name="Moda do Desempenho")
+
+            if not moda_desempenho_df.empty:
+                st.line_chart(moda_desempenho_df.set_index("DS_PERIODO"))
+            else:
+                st.warning("Sem dados de moda de desempenho disponíveis para os períodos selecionados.")
+        else:
+            st.warning("Sem dados disponíveis para o intervalo de períodos selecionado.")
+    else:
+        st.info("Por favor, selecione uma disciplina para visualizar os gráficos.")
 
 main()

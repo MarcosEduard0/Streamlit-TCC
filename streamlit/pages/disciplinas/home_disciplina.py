@@ -51,7 +51,7 @@ def main():
     # Filtrar apenas os aprovados
     df_aprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] == "Aprovado"]
 
-    # Calcular a quantidade de aprovações por disciplina
+    # Calcular a taxa de aprovações por disciplina
     aprovacao_por_disciplina = df_aprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Aprovados")
 
     # Ordenar os dados da maior para a menor quantidade de aprovados
