@@ -382,9 +382,9 @@ def main():
         dimensions, dados.get("f_desempenho_academico")
     )
 
-    st.header("Sistema de Análises Acadêmica")
+    st.header("Sistema de Análises Acadêmica 🎓")
     st.subheader(f"Perído Atual: {dados.get("periodo_atual")}")
-    st.markdown(f"Situação Atual dos alunos.")
+    st.markdown(f"Situação atual dos alunos:")
 
     with st.container():
         metricas_atuais(df_situacao_matricula, dados.get("periodo_atual"))
