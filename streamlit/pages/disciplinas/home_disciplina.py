@@ -54,6 +54,11 @@ def main():
     # Calcular a taxa de aprovações por disciplina
     aprovacao_por_disciplina = df_aprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Aprovados")
 
+    # Filtrar apenas os reprovados (situações diferentes de "Aprovado")
+    df_reprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] != "Aprovado"]
+    # Calcular a quantidade de reprovações por disciplina
+    reprovacao_por_disciplina = df_reprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Reprovados")
+
     # Ordenar os dados da maior para a menor quantidade de aprovados
     aprovacao_por_disciplina = aprovacao_por_disciplina.sort_values(by="Quantidade de Aprovados", ascending=False)
 
@@ -61,14 +66,14 @@ def main():
     top_10_aprovacao = aprovacao_por_disciplina.head(10)
 
     # Criar gráfico de barras
+    st.subheader("Maiores taxas de Aprovação")
     grafico_aprovacao = alt.Chart(top_10_aprovacao).mark_bar().encode(
         x=alt.X("DS_NOME_DISCIPLINA:N", title="Disciplina", sort="-y", axis=alt.Axis(labelAngle=-45)),
         y=alt.Y("Quantidade de Aprovados:Q", title="Quantidade de Aprovados"),
         tooltip=["DS_NOME_DISCIPLINA", "Quantidade de Aprovados"]
     ).properties(
         width=800, 
-        height=400,
-        title=f"Top 10 Taxa de Aprovação por Disciplina - Período {periodo_letivo}"
+        height=400
     ).configure_axis(
         labelFontSize=12,
         titleFontSize=14
@@ -78,9 +83,6 @@ def main():
     )
 
     st.altair_chart(grafico_aprovacao, use_container_width=True)
-
-    # Filtrar apenas os reprovados (situações diferentes de "Aprovado")
-    df_reprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] != "Aprovado"]
 
     # Calcular a quantidade de reprovações por disciplina
     reprovacao_por_disciplina = df_reprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Reprovados")
@@ -92,14 +94,14 @@ def main():
     top_10_reprovacao = reprovacao_por_disciplina.head(10)
 
     # Criar gráfico de barras para reprovações
+    st.subheader("Maiores Taxas de Reprovação")
     grafico_reprovacao = alt.Chart(top_10_reprovacao).mark_bar().encode(
         x=alt.X("DS_NOME_DISCIPLINA:N", title="Disciplina", sort="-y", axis=alt.Axis(labelAngle=-45)),
         y=alt.Y("Quantidade de Reprovados:Q", title="Quantidade de Reprovados"),
         tooltip=["DS_NOME_DISCIPLINA", "Quantidade de Reprovados"]
     ).properties(
         width=800, 
-        height=400,
-        title=f"Top 10 Taxa de Reprovação por Disciplina - Período {periodo_letivo}"
+        height=400
     ).configure_axis(
         labelFontSize=12,
         titleFontSize=14

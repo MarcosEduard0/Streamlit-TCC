@@ -82,6 +82,7 @@ def main():
         # Verifica se há dados suficientes após o filtro para evitar gráficos vazios
         if not df_filtrado_periodo.empty:
             # Gráfico 1: Barra empilhada de aprovações e reprovações
+            st.subheader("Aprovações e Reprovações por período")
             # Contar aprovações e reprovações
             df_filtrado_periodo["Aprovado"] = df_filtrado_periodo["DS_SITUACAO_DETALHADA"].apply(lambda x: 1 if x == "Aprovado" else 0)
             df_filtrado_periodo["Reprovado"] = df_filtrado_periodo["DS_SITUACAO_DETALHADA"].apply(lambda x: 1 if x != "Aprovado" else 0)
@@ -95,8 +96,9 @@ def main():
                 st.warning("Sem dados de aprovação/reprovação disponíveis para os períodos selecionados.")
 
             # Gráfico 2: Gráfico de linha com média do desempenho
-            df_filtrado_periodo["VL_DESEMPENHO"] = pd.to_numeric(df_filtrado_periodo["VL_DESEMPENHO"], errors="coerce")
-            media_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VL_DESEMPENHO"].mean()
+            st.subheader("Média de Desempenho por período")
+            df_filtrado_periodo["VL_GRAU_DISCIPLINA"] = pd.to_numeric(df_filtrado_periodo["VL_GRAU_DISCIPLINA"], errors="coerce")
+            media_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VL_GRAU_DISCIPLINA"].mean()
             media_desempenho_df = media_desempenho.reset_index(name="Média do Desempenho")
 
             if not media_desempenho_df.empty:
@@ -105,7 +107,8 @@ def main():
                 st.warning("Sem dados de desempenho disponíveis para os períodos selecionados.")
 
             # Gráfico 3: Gráfico de linha com moda do desempenho
-            moda_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VL_DESEMPENHO"].agg(lambda x: x.mode()[0] if not x.mode().empty else np.nan)
+            st.subheader("Moda de Desempenho por período")
+            moda_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VVL_GRAU_DISCIPLINA"].agg(lambda x: x.mode()[0] if not x.mode().empty else np.nan)
             moda_desempenho_df = moda_desempenho.reset_index(name="Moda do Desempenho")
 
             if not moda_desempenho_df.empty:
