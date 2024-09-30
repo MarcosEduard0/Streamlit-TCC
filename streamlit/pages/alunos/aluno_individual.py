@@ -162,7 +162,6 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
             "DS_SITUACAO_DETALHADA",
         ]
     ]
-
     dados_aluno = dados_aluno.set_index(
         ["DS_PERIODO", "CD_DISCIPLINA", "DS_NOME_DISCIPLINA"]
     )
@@ -172,7 +171,7 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
 
     dados_aluno = dados_aluno.join(
         df_disciplina_agrupado,
-        how="inner",
+        how="left",
     ).reset_index()
 
     df_reprovacaoes = (
@@ -181,14 +180,21 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
         .reset_index(drop=True)
     )
     df_aprovacaoes = (
-        dados_aluno[dados_aluno["DS_SITUACAO_DETALHADA"] == "Aprovado"]
+        dados_aluno[
+            (dados_aluno["DS_SITUACAO_DETALHADA"] == "Aprovado")
+            & (dados_aluno["VL_GRAU_DISCIPLINA"] != "T")
+        ]
         .sort_values("DS_PERIODO")
         .reset_index(drop=True)
     )
+    df_transferencias = dados_aluno[dados_aluno["VL_GRAU_DISCIPLINA"] == "T"]
+
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Disciplinas")
-        tab1, tab2, tab3 = st.tabs(["✅ Aprovações", "❌ Reprovações", "📛 Detalhes"])
+        tab1, tab2, tab3, tab4 = st.tabs(
+            ["✅ Aprovações", "❌ Reprovações", "⬇️ Transferências", "📛 Detalhes"]
+        )
         with tab1:
             # st.subheader("Aprovações")
             st.dataframe(
@@ -234,8 +240,26 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
                 },
                 hide_index=True,
             )
-
         with tab3:
+            st.dataframe(
+                df_transferencias,
+                use_container_width=True,
+                column_order=(
+                    "DS_PERIODO",
+                    "CD_DISCIPLINA",
+                    "DS_NOME_DISCIPLINA",
+                    "VL_GRAU_DISCIPLINA",
+                ),
+                column_config={
+                    "DS_PERIODO": "Período",
+                    "CD_DISCIPLINA": "Código",
+                    "DS_NOME_DISCIPLINA": "Disciplina",
+                    "VL_GRAU_DISCIPLINA": "Nota Final",
+                },
+                hide_index=True,
+            )
+
+        with tab4:
             reprovacao_agg = (
                 df_reprovacaoes.groupby(
                     ["CD_DISCIPLINA", "DS_NOME_DISCIPLINA", "DS_SITUACAO"]
@@ -356,8 +380,6 @@ def main():
     dre = st.query_params.get("dre")
 
     if dre:
-        # with st.sidebar:
-        #     st.write("oi")
         df_situacao_matricula_filtrado = df_situacao_matricula[
             df_situacao_matricula["DS_MATRICULA_DRE"] == dre
         ]
@@ -375,6 +397,23 @@ def main():
         )
 
         dados_gerais_aluno(df_situacao_matricula_filtrado, dados.get("periodo_atual"))
+
+        with st.expander("Períodos Trancados"):
+            # Filtrar os períodos trancados
+            periodos_trancados = sorted(
+                df_situacao_matricula_filtrado[
+                    df_situacao_matricula_filtrado["DS_SITUACAO"] == "Trancada"
+                ]["DS_PERIODO"].values
+            )
+
+            # Verificar se há períodos trancados
+            if len(periodos_trancados) > 0:
+                # Exibir cada período trancado
+                for periodo in periodos_trancados:
+                    st.write(f"- {periodo}")
+            else:
+                st.write("Não há períodos trancados.")
+
         st.divider()
 
         grafico_de_crs(df_situacao_periodo_filtrado)

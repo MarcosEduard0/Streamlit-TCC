@@ -69,7 +69,14 @@ def grafico_media_cra_periodo(dataframe):
     st.plotly_chart(fig)
 
 
-def grafico_situacao_matricula_periodo_ingresso(dataframe):
+def grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula):
+
+    # Ordenar o dataframe pelo período em ordem decrescente para que o mais recente venha primeiro
+    df_situacao_matricula.sort_values(['DS_MATRICULA_DRE',"DS_PERIODO"], ascending=False, inplace=True)
+
+    # Remover duplicatas mantendo apenas o registro mais recente para cada aluno (considerando a coluna de situação)
+    dataframe = df_situacao_matricula.drop_duplicates(subset=["DS_MATRICULA_DRE"], keep="first")
+
     data = (
         dataframe.groupby(["DS_SITUACAO", "DS_PERIODO_INGRESSO_UFRJ"])
         .size()
@@ -91,7 +98,7 @@ def grafico_situacao_matricula_periodo_ingresso(dataframe):
     fig = px.bar(
         data,
         x="DS_PERIODO_INGRESSO_UFRJ",
-        y="quantidade",
+        y='quantidade',
         color="DS_SITUACAO",
         labels={
             "quantidade": "Quantidade",
@@ -104,7 +111,7 @@ def grafico_situacao_matricula_periodo_ingresso(dataframe):
     fig.update_traces(
         hovertemplate="<br>".join(
             [
-                "Período: %{x}",
+                "Período de Ingresso: %{x}",
                 "Quantidade: %{y}",
                 "Total no Período: %{customdata[0]}",
             ]
@@ -375,9 +382,9 @@ def main():
         dimensions, dados.get("f_desempenho_academico")
     )
 
-    st.header("Sistema de Análises Acadêmica")
+    st.header("Sistema de Análises Acadêmica 🎓")
     st.subheader(f"Perído Atual: {dados.get("periodo_atual")}")
-    st.markdown(f"Situação Atual dos alunos.")
+    st.markdown(f"Situação atual dos alunos:")
 
     with st.container():
         metricas_atuais(df_situacao_matricula, dados.get("periodo_atual"))
@@ -387,7 +394,7 @@ def main():
         col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader("Total de Alunos por Situação")
+            st.subheader("Situação de Matricula por Período")
             grafico_situacao_matricula_periodo(df_situacao_matricula)
 
         with col2:
@@ -396,7 +403,7 @@ def main():
 
     # Segundo container
     with st.container():
-        st.subheader("Análise de Matrícula Periodo de Ingresso")
+        st.subheader("Situação de Matricula por Periodo de Ingresso")
         grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula)
         st.divider()
 
