@@ -52,25 +52,30 @@ def main():
     df_aprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] == "Aprovado"]
 
     # Calcular a taxa de aprovações por disciplina
-    aprovacao_por_disciplina = df_aprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Aprovados")
+    aprovados_por_disciplina = df_aprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Aprovados")
 
     # Filtrar apenas os reprovados (situações diferentes de "Aprovado")
     df_reprovados = df_filtrado[df_filtrado["DS_SITUACAO_DETALHADA"] != "Aprovado"]
     # Calcular a quantidade de reprovações por disciplina
-    reprovacao_por_disciplina = df_reprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Reprovados")
+    reprovados_por_disciplina = df_reprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Reprovados")
 
+    # Mesclar os dois dataframes para obter a taxa de aprovação por disciplina
+    taxa_aprovacao = pd.merge(aprovados_por_disciplina, reprovados_por_disciplina, on='DS_NOME_DISCIPLINA', how='left')
+
+    # Calcular a taxa de aprovação
+    taxa_aprovacao['Taxa de Aprovação'] = taxa_aprovacao['Quantidade de Aprovados'] / (taxa_aprovacao['Quantidade de Aprovados'] + taxa_aprovacao['Quantidade de Reprovados'])
     # Ordenar os dados da maior para a menor quantidade de aprovados
-    aprovacao_por_disciplina = aprovacao_por_disciplina.sort_values(by="Quantidade de Aprovados", ascending=False)
+    taxa_aprovacao = taxa_aprovacao.sort_values(by="Taxa de Aprovação", ascending=False)
 
     # Limitar para mostrar apenas as 10 disciplinas com mais aprovações
-    top_10_aprovacao = aprovacao_por_disciplina.head(10)
+    top_10_aprovacao = taxa_aprovacao.head(10)
 
     # Criar gráfico de barras
     st.subheader("Maiores taxas de Aprovação")
     grafico_aprovacao = alt.Chart(top_10_aprovacao).mark_bar().encode(
         x=alt.X("DS_NOME_DISCIPLINA:N", title="Disciplina", sort="-y", axis=alt.Axis(labelAngle=-45)),
-        y=alt.Y("Quantidade de Aprovados:Q", title="Quantidade de Aprovados"),
-        tooltip=["DS_NOME_DISCIPLINA", "Quantidade de Aprovados"]
+        y=alt.Y("Taxa de Aprovação:Q", title="Taxa de Aprovação"),
+        tooltip=["DS_NOME_DISCIPLINA", "Taxa de Aprovação"]
     ).properties(
         width=800, 
         height=400
@@ -84,21 +89,23 @@ def main():
 
     st.altair_chart(grafico_aprovacao, use_container_width=True)
 
-    # Calcular a quantidade de reprovações por disciplina
-    reprovacao_por_disciplina = df_reprovados.groupby("DS_NOME_DISCIPLINA").size().reset_index(name="Quantidade de Reprovados")
+     # Mesclar os dois dataframes para obter a taxa de aprovação por disciplina
+    taxa_reprovacao = pd.merge(aprovados_por_disciplina, reprovados_por_disciplina, on='DS_NOME_DISCIPLINA', how='left')
 
-    # Ordenar os dados da maior para a menor quantidade de reprovados
-    reprovacao_por_disciplina = reprovacao_por_disciplina.sort_values(by="Quantidade de Reprovados", ascending=False)
+    # Calcular a taxa de aprovação
+    taxa_reprovacao['Taxa de Reprovação'] = taxa_reprovacao['Quantidade de Reprovados'] / (taxa_reprovacao['Quantidade de Reprovados'] + taxa_aprovacao['Quantidade de Aprovados'])
+    # Ordenar os dados da maior para a menor quantidade de aprovados
+    taxa_reprovacao = taxa_reprovacao.sort_values(by="Taxa de Reprovação", ascending=False)
 
     # Limitar para mostrar apenas as 10 disciplinas com mais reprovações
-    top_10_reprovacao = reprovacao_por_disciplina.head(10)
+    top_10_reprovacao = taxa_reprovacao.head(10)
 
     # Criar gráfico de barras para reprovações
     st.subheader("Maiores Taxas de Reprovação")
     grafico_reprovacao = alt.Chart(top_10_reprovacao).mark_bar().encode(
         x=alt.X("DS_NOME_DISCIPLINA:N", title="Disciplina", sort="-y", axis=alt.Axis(labelAngle=-45)),
-        y=alt.Y("Quantidade de Reprovados:Q", title="Quantidade de Reprovados"),
-        tooltip=["DS_NOME_DISCIPLINA", "Quantidade de Reprovados"]
+        y=alt.Y("Taxa de Reprovação:Q", title="Taxa de Reprovação"),
+        tooltip=["DS_NOME_DISCIPLINA", "Taxa de Reprovação"]
     ).properties(
         width=800, 
         height=400
