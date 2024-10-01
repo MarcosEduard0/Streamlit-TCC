@@ -3,6 +3,7 @@ import pandas as pd
 import altair as alt
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 import os
 
 from utils.auxiliary_functions.all_auxiliary_functions import (
@@ -108,7 +109,7 @@ def main():
 
             # Gráfico 3: Gráfico de linha com moda do desempenho
             st.subheader("Moda de Desempenho por período")
-            moda_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VVL_GRAU_DISCIPLINA"].agg(lambda x: x.mode()[0] if not x.mode().empty else np.nan)
+            moda_desempenho = df_filtrado_periodo.groupby("DS_PERIODO")["VL_GRAU_DISCIPLINA"].agg(lambda x: x.mode()[0] if not x.mode().empty else np.nan)
             moda_desempenho_df = moda_desempenho.reset_index(name="Moda do Desempenho")
 
             if not moda_desempenho_df.empty:
