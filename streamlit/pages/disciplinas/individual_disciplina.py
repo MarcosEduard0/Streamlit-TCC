@@ -103,7 +103,16 @@ def main():
             media_desempenho_df = media_desempenho.reset_index(name="Média do Desempenho")
 
             if not media_desempenho_df.empty:
-                st.line_chart(media_desempenho_df.set_index("DS_PERIODO"))
+                # st.line_chart(media_desempenho_df.set_index("DS_PERIODO"))
+                fig = px.line(
+                    media_desempenho_df,
+                    x="DS_PERIODO",
+                    y="Média do Desempenho",
+                    labels={"Média do Desempenho": "Média", "DS_PERIODO": "Período"},
+                    markers=True
+                )
+                fig.update_xaxes(tickangle=270)
+                st.plotly_chart(fig)
             else:
                 st.warning("Sem dados de desempenho disponíveis para os períodos selecionados.")
 
@@ -113,7 +122,16 @@ def main():
             moda_desempenho_df = moda_desempenho.reset_index(name="Moda do Desempenho")
 
             if not moda_desempenho_df.empty:
-                st.line_chart(moda_desempenho_df.set_index("DS_PERIODO"))
+                # st.line_chart(moda_desempenho_df.set_index("DS_PERIODO"))
+                fig = px.line(
+                    moda_desempenho_df,
+                    x="DS_PERIODO",
+                    y="Moda do Desempenho",
+                    labels={"Moda do Desempenho": "Moda", "DS_PERIODO": "Período"},
+                    markers=True
+                )
+                fig.update_xaxes(tickangle=270)
+                st.plotly_chart(fig)
             else:
                 st.warning("Sem dados de moda de desempenho disponíveis para os períodos selecionados.")
         else:
