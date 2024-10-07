@@ -11,6 +11,8 @@ from utils.auxiliary_functions.all_auxiliary_functions import (
     merge_dataframes,
 )
 
+st.markdown("# Disciplinas")
+
 # Função de ordenação de períodos
 def ordenar_periodos(periodos):
     periodos_ordenados = sorted(periodos, key=lambda x: (int(x.split("/")[0]), int(x.split("/")[1])))
