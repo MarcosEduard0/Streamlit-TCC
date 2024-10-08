@@ -74,8 +74,20 @@ def main():
     # Limitar para mostrar as disciplinas com mais aprovações
     top_disciplinas_aprovacao = taxa_aprovacao.head(40)
     # Exibir a tabela
-    st.subheader("Maiores taxas de Aprovação - Disciplinas")
-    st.dataframe(top_disciplinas_aprovacao[['DS_NOME_DISCIPLINA',  'Taxa de Aprovação (%)', 'Quantidade de Aprovados', 'Quantidade de Reprovados']], height=400, width=900)
+    st.subheader("Maiores taxas de Aprovação")
+    st.dataframe(top_disciplinas_aprovacao[[
+        'DS_NOME_DISCIPLINA',  
+        'Taxa de Aprovação (%)', 
+        'Quantidade de Aprovados', 
+        'Quantidade de Reprovados']].reset_index(drop=True), 
+        height=400, 
+        width=900, 
+        hide_index=True,
+        column_config={
+            "DS_NOME_DISCIPLINA" : "Disciplina",
+            "Quantidade de Aprovados": "Aprovados", 
+            "Quantidade de Reprovados": "Reprovados"
+        })
     
     # GRÁFICO 2 - TAXA DE REPROVAÇÃO POR DISCIPLINA
     # Mesclar os dois dataframes para obter a taxa de aprovação por disciplina
@@ -91,8 +103,19 @@ def main():
     # Limitar para mostrar as disciplinas com mais reprovações
     top_disciplinas_reprovacao = taxa_reprovacao.head(40)
     # Exibir a tabela
-    st.subheader("Maiores taxas de Reprovação - Disciplinas")
-    st.dataframe(top_disciplinas_reprovacao[['DS_NOME_DISCIPLINA',  'Taxa de Reprovação (%)', 'Quantidade de Aprovados', 'Quantidade de Reprovados']], height=400, width=900)
-    
+    st.subheader("Maiores taxas de Reprovação")
+    st.dataframe(top_disciplinas_reprovacao[[
+        'DS_NOME_DISCIPLINA',  
+        'Taxa de Reprovação (%)', 
+        'Quantidade de Aprovados', 
+        'Quantidade de Reprovados']].reset_index(drop=True), 
+        height=400, 
+        width=900, 
+        hide_index=True,
+        column_config={
+            "DS_NOME_DISCIPLINA" : "Disciplina",
+            "Quantidade de Aprovados": "Aprovados", 
+            "Quantidade de Reprovados": "Reprovados"
+        })
 
 main()
