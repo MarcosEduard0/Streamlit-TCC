@@ -460,7 +460,7 @@ def main():
 
         with col1:
             st.subheader("Situação de Matricula por Período")
-            grafico_situacao_matricula_periodo(df_situacao_matricula_filtrado)
+            grafico_situacao_matricula_periodo(df_situacao_matricula)
 
         with col2:
             st.subheader("Média CRA por Perído")
@@ -537,7 +537,7 @@ def main():
     # Segundo container
     with st.container():
         st.subheader("Situação de Matricula por Periodo de Ingresso")
-        grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula)
+        grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula_filtrado)
         st.divider()
 
     # Terceiro container | MAPA
