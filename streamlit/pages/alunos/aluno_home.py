@@ -396,7 +396,14 @@ def main():
 
         # Slider para selecionar o período de ingresso
         inicio_periodo, fim_periodo = st.select_slider(
-            label="Período de Ingresso",
+            label="Período",
+            options=lista_periodos_filtrada,
+            value=(min(lista_periodos_filtrada), max(lista_periodos_filtrada)),
+        )
+
+        # Slider para selecionar o período de ingresso
+        inicio_periodo_UFRJ, fim_periodo_UFRJ = st.select_slider(
+            label="Período de Ingresso na UFRJ",
             options=lista_periodos_filtrada,
             value=(min(lista_periodos_filtrada), max(lista_periodos_filtrada)),
         )
@@ -417,13 +424,13 @@ def main():
 
         # Filtragem dos dados
         df_situacao_matricula_filtrado = df_situacao_matricula[
-            (df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"] >= inicio_periodo)
-            & (df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"] <= fim_periodo)
+            (df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"] >= inicio_periodo_UFRJ)
+            & (df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"] <= fim_periodo_UFRJ)
         ]
 
         d_aluno_filtrado = dados.get("d_aluno")[
-            (dados.get("d_aluno")["DS_PERIODO_INGRESSO_UFRJ"] >= inicio_periodo)
-            & (dados.get("d_aluno")["DS_PERIODO_INGRESSO_UFRJ"] <= fim_periodo)
+            (dados.get("d_aluno")["DS_PERIODO_INGRESSO_UFRJ"] >= inicio_periodo_UFRJ)
+            & (dados.get("d_aluno")["DS_PERIODO_INGRESSO_UFRJ"] <= fim_periodo_UFRJ)
         ]
 
         # Aplicar filtro de sexo, se houver seleção
