@@ -460,7 +460,7 @@ def main():
 
         with col1:
             st.subheader("Situação de Matricula por Período")
-            grafico_situacao_matricula_periodo(df_situacao_matricula)
+            grafico_situacao_matricula_periodo(df_situacao_matricula_filtrado)
 
         with col2:
             st.subheader("Média CRA por Perído")
