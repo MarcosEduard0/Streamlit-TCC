@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 import os
 
 from utils.auxiliary_functions.all_auxiliary_functions import (
@@ -10,7 +11,9 @@ from utils.auxiliary_functions.all_auxiliary_functions import (
 )
 
 
-def criar_grafico_CR(df, coluna_valores, titulo="", y_min=-1, y_max=11):
+def criar_grafico_CR(
+    df, coluna_valores, titulo="", y_min=-1, y_max=11, title_x="Período", title_y="CR"
+):
     fig = go.Figure()
 
     # Adicionar a linha com os dados do CR
@@ -29,8 +32,8 @@ def criar_grafico_CR(df, coluna_valores, titulo="", y_min=-1, y_max=11):
     # Define os limites do eixo Y, se especificados
     fig.update_layout(
         title=titulo,
-        xaxis_title="Período",
-        yaxis_title="CR",
+        xaxis_title=title_x,
+        yaxis_title=title_y,
         showlegend=False,
         margin=dict(l=0, r=0, t=0, b=0),  # Remove as margens
         yaxis=dict(range=[y_min, y_max]),
@@ -44,7 +47,7 @@ def grafico_de_crs(df):
 
     with col1:
         st.subheader("Histórico do CR Acumulado")
-        criar_grafico_CR(df, "VL_CR_ACUMULADO")
+        criar_grafico_CR(df, "VL_CR_ACUMULADO", title_y="CRA")
 
     with col2:
         st.subheader("Histórico do CR do Período")
@@ -103,6 +106,7 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
                 [
                     ("Sexo", df_aluno["DS_SEXO"]),
                     ("Modalidade de Cota", df_aluno["DS_MODALIDADE_COTA"]),
+                    ("Logradouro", df_aluno["DS_LOGRADOURO"]),
                 ],
             ),
             (
@@ -113,6 +117,7 @@ def dados_gerais_aluno(df_aluno, periodo_atual):
                         int(df_aluno["VL_IDADE_CURSO_ATUAL"]),
                     ),
                     ("Curso de Ingresso", df_aluno["DS_NOME_CURSO_INGRESSO"]),
+                    ("Bairro", df_aluno["DS_BAIRRO"]),
                 ],
             ),
         ]
@@ -193,7 +198,7 @@ def tabela_aprovacao_disciplina(dados_aluno, desemenho_disciplinas):
     with col1:
         st.subheader("Disciplinas")
         tab1, tab2, tab3, tab4 = st.tabs(
-            ["✅ Aprovações", "❌ Reprovações", "⬇️ Transferências", "📛 Detalhes"]
+            ["✅ Aprovações", "❌ Reprovações", "⬇️ Transferências", "📚 Detalhes"]
         )
         with tab1:
             # st.subheader("Aprovações")
@@ -314,7 +319,7 @@ def cabecalho_e_metricas(df_aluno, df_periodo_aluno, periodo_atual):
         cr_variacao = None
 
     # Exibe as informações do aluno e as métricas calculadas
-    st.header(df_aluno["DS_NOME_ALUNO"], divider="rainbow")
+    st.header(df_aluno["NM_ALUNO"], divider="rainbow")
 
     col1, col2, col3, col4 = st.columns([0.58, 0.14, 0.14, 0.14])
     col1.metric("Situação da Matrícula", df_aluno["DS_SITUACAO_DETALHADA"])
@@ -332,6 +337,288 @@ def cabecalho_e_metricas(df_aluno, df_periodo_aluno, periodo_atual):
         "Quant. Períodos Integralizados", df_aluno["VL_PERIODOS_INTEGRALIZADOS"]
     )  # Atualize conforme necessário
     st.markdown("\n")
+
+
+def obter_ultimo_cr(lista_cr):
+    """
+    Obtém o último valor de CR acumulado de uma lista de CRs.
+
+    Args:
+        lista_cra (list): Lista de CRs acumulados.
+
+    Returns:
+        float: O último CR acumulado da lista ou NaN se a lista estiver vazia.
+    """
+    if lista_cr:
+        return lista_cr[-1]
+    else:
+        return np.nan
+
+
+def processar_dados_tabelas(df_situacao_periodo, df_situacao_matricula):
+    """
+    Processa e combina os dados das tabelas de situação de período e matrícula.
+
+    Args:
+        df_situacao_periodo (DataFrame): DataFrame contendo informações de CR por período.
+        df_situacao_matricula (DataFrame): DataFrame contendo informações de situação de matrícula.
+
+    Returns:
+        DataFrame: DataFrame combinado com CR acumulado atual e listas de CRs por período e acumulado.
+    """
+    result = (
+        df_situacao_periodo.sort_values(["DS_MATRICULA_DRE", "DS_PERIODO"])
+        .groupby("DS_MATRICULA_DRE")
+        .agg({"VL_CR_PERIODO": list, "VL_CR_ACUMULADO": list})
+        .rename(
+            columns={
+                "VL_CR_PERIODO": "lista_cr_periodo",
+                "VL_CR_ACUMULADO": "lista_cr_acumulado",
+            }
+        )
+        .reset_index()
+    )
+
+    teste = df_situacao_matricula.sort_values(
+        by=["DS_MATRICULA_DRE", "VL_ANO", "VL_SEMESTRE"]
+    )
+    situacao_atual = teste.groupby("DS_MATRICULA_DRE").last().reset_index()
+    situacao_atual = situacao_atual.drop(columns=["VL_ANO", "VL_SEMESTRE"])
+
+    tabela = situacao_atual.merge(result, on="DS_MATRICULA_DRE", how="inner")
+
+    tabela["CR_ACUMULADO_ATUAL"] = tabela["lista_cr_acumulado"].apply(obter_ultimo_cr)
+    tabela["CR_ATUAL"] = tabela["lista_cr_periodo"].apply(obter_ultimo_cr)
+
+    return tabela
+
+
+def aplicar_filtros(
+    df, text_search, cr_range, cra_range, situacao_selecionada, modalidade_selecionada
+):
+    """
+    Aplica filtros ao DataFrame com base nos parâmetros fornecidos.
+
+    Args:
+        df (DataFrame): DataFrame original a ser filtrado.
+        text_search (str): Texto de pesquisa para nome ou DRE.
+        cr_range (tuple): Faixa de CR acumulado.
+        situacao_selecionada (list): Lista de situações de matrícula selecionadas.
+        modalidade_selecionada (list): Lista de modalidades de cota selecionadas.
+
+    Returns:
+        DataFrame: DataFrame filtrado de acordo com os parâmetros fornecidos.
+    """
+    # Filtragem por DRE ou Nome
+    if text_search.isdigit():
+        df = df[df["DS_MATRICULA_DRE"].astype(str).str.startswith(text_search)]
+    elif text_search:
+        df = df[df["NM_ALUNO"].str.contains(text_search, case=False, na=False)]
+
+    # Filtragem por situação da matrícula
+    if situacao_selecionada:
+        df = df[df["DS_SITUACAO"].isin(situacao_selecionada)]
+
+    # Filtragem por modalidade de cota
+    if modalidade_selecionada:
+        df = df[df["DS_MODALIDADE_COTA"].isin(modalidade_selecionada)]
+
+    # Filtragem por intervalo de CR do periodo
+    df = df[(df["CR_ATUAL"] >= cr_range[0]) & (df["CR_ATUAL"] <= cr_range[1])]
+
+    # Filtragem por intervalo de CR acumulado
+    df = df[
+        (df["CR_ACUMULADO_ATUAL"] >= cra_range[0])
+        & (df["CR_ACUMULADO_ATUAL"] <= cra_range[1])
+    ]
+
+    return df
+
+
+def listagem_de_alunos(df_situacao_periodo, df_situacao_matricula, periodo_atual):
+    """
+    Exibe a listagem de alunos com opções de filtragem e pesquisa na interface Streamlit.
+
+    Args:
+        df_situacao_periodo (DataFrame): DataFrame contendo informações de CR por período.
+        df_situacao_matricula (DataFrame): DataFrame contendo informações de situação de matrícula.
+    """
+    df = processar_dados_tabelas(df_situacao_periodo, df_situacao_matricula)
+
+    # Criação de campos de pesquisa e filtragem
+    with st.container():
+        col1, col2, col3 = st.columns([0.5, 0.25, 0.25])
+        with col1:
+            text_search = st.text_input(
+                "Pesquisar", placeholder="Digite o Nome ou DRE", key="dre_ou_nome"
+            )
+        with col2:
+            lista_periodos = sorted(
+                df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"].unique()
+            )
+            ingresso_ufrj = st.select_slider(
+                "Período de Ingresso na UFRJ",
+                options=lista_periodos,
+                value=(
+                    lista_periodos[0],
+                    lista_periodos[-1],
+                ),  # Definir valor inicial como o primeiro e último período
+                key="periodo_ingresso_ufrj",
+            )
+        with col3:
+            lista_periodos = sorted(
+                df_situacao_matricula["DS_PERIODO_INGRESSO_CURSO_ATUAL"].unique()
+            )
+            ingresso_curso = st.select_slider(
+                "Período de Ingresso no Curso",
+                options=lista_periodos,
+                value=(
+                    lista_periodos[0],
+                    lista_periodos[-1],
+                ),  # Definir valor inicial como o primeiro e último período
+                key="periodo_ingresso_curso",
+            )
+
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            situacoes_matricula = df["DS_SITUACAO"].unique()
+            situacao_selecionada = st.multiselect(
+                "Situação da Matrícula",
+                situacoes_matricula,
+                placeholder="Selecione as opções",
+            )
+
+        with col2:
+            modalidades_cota = df["DS_MODALIDADE_COTA"].unique()
+            modalidade_selecionada = st.multiselect(
+                "Modalidade de Cota",
+                modalidades_cota,
+                placeholder="Selecione as opções",
+            )
+
+        with col3:
+            cr_range = st.slider("CR Peíodo Atual", 0.0, 10.0, (0.0, 10.0), key="cr")
+
+        with col4:
+            cra_range = st.slider(
+                "CR Acumulado Atual", 0.0, 10.0, (0.0, 10.0), key="cra"
+            )
+
+    # Aplicar os filtros ao DataFrame
+    df_filtrado = aplicar_filtros(
+        df,
+        text_search,
+        cr_range,
+        cra_range,
+        situacao_selecionada,
+        modalidade_selecionada,
+    )
+
+    # Aplica filtro do período atual se não houver nenhum outro filtro
+    if (
+        not text_search
+        and cra_range == (0.0, 10.0)
+        and cr_range == (0.0, 10.0)
+        and not situacao_selecionada
+        and not modalidade_selecionada
+    ):
+        df_filtrado = df_filtrado[df_filtrado["DS_PERIODO"] == periodo_atual]
+
+    # Cria um link a partir do DRE do aluno
+    df_filtrado["DS_MATRICULA_DRE"] = df_filtrado["DS_MATRICULA_DRE"].apply(
+        lambda dre: f"aluno_individual?dre={dre}"
+    )
+    # Exibição da tabela com os dados filtrados
+    st.dataframe(
+        df_filtrado,
+        use_container_width=True,
+        selection_mode=["single-row"],
+        column_order=(
+            "DS_MATRICULA_DRE",
+            "NM_ALUNO",
+            "VL_IDADE_INGRESSO",
+            "DS_CURSO_INGRESSO_UFRJ",
+            "DS_MODALIDADE_COTA",
+            "DS_SITUACAO",
+            "lista_cr_periodo",
+            "lista_cr_acumulado",
+        ),
+        column_config={
+            "NM_ALUNO": "Nome Completo",
+            "VL_IDADE_INGRESSO": "Idade de Ingresso",
+            "DS_MATRICULA_DRE": st.column_config.LinkColumn(
+                "Matrícula DRE",
+                display_text="aluno_individual\\?dre=([^&\\s]*)",
+            ),
+            "DS_MODALIDADE_COTA": "Modalidade de Cota",
+            "DS_SITUACAO": "Situação da Matrícula",
+            "DS_CURSO_INGRESSO_UFRJ": "Curso de Ingresso",
+            "lista_cr_acumulado": st.column_config.AreaChartColumn(
+                "CR Acumulado", y_min=0, y_max=10
+            ),
+            "lista_cr_periodo": st.column_config.AreaChartColumn(
+                "CR por Período", y_min=0, y_max=10
+            ),
+        },
+        hide_index=True,
+    )
+
+
+def gerar_perfil_aluno(
+    dre,
+    df_situacao_matricula,
+    df_situacao_periodo,
+    df_desempenho_academico,
+    periodo_atual,
+):
+    # Filtrando dataframes para o Aluno especifico
+    df_situacao_matricula_filtrado = df_situacao_matricula[
+        df_situacao_matricula["DS_MATRICULA_DRE"] == dre
+    ]
+    df_situacao_periodo_filtrado = df_situacao_periodo[
+        df_situacao_periodo["DS_MATRICULA_DRE"] == dre
+    ]
+    df_desempenho_academico_filtrado = df_desempenho_academico[
+        df_desempenho_academico["DS_MATRICULA_DRE"] == dre
+    ]
+
+    with st.container():
+        cabecalho_e_metricas(
+            df_situacao_matricula_filtrado,
+            df_situacao_periodo_filtrado,
+            periodo_atual,
+        )
+
+    with st.container():
+        dados_gerais_aluno(df_situacao_matricula_filtrado, periodo_atual)
+
+    with st.container():
+        with st.expander("Períodos Trancados"):
+            # Filtrar os períodos trancados
+            periodos_trancados = sorted(
+                df_situacao_matricula_filtrado[
+                    df_situacao_matricula_filtrado["DS_SITUACAO"] == "Trancada"
+                ]["DS_PERIODO"].values
+            )
+
+            # Verificar se há períodos trancados
+            if len(periodos_trancados) > 0:
+                # Exibir cada período trancado
+                for periodo in periodos_trancados:
+                    st.write(f"- {periodo}")
+            else:
+                st.write("Não há períodos trancados.")
+        st.divider()
+
+    with st.container():
+        grafico_de_crs(df_situacao_periodo_filtrado)
+        st.divider()
+
+    with st.container():
+        tabela_aprovacao_disciplina(
+            df_desempenho_academico_filtrado, df_desempenho_academico
+        )
 
 
 def main():
@@ -380,50 +667,20 @@ def main():
     dre = st.query_params.get("dre")
 
     if dre:
-        df_situacao_matricula_filtrado = df_situacao_matricula[
-            df_situacao_matricula["DS_MATRICULA_DRE"] == dre
-        ]
-        df_situacao_periodo_filtrado = df_situacao_periodo[
-            df_situacao_periodo["DS_MATRICULA_DRE"] == dre
-        ]
-        df_desempenho_academico_filtrado = df_desempenho_academico[
-            df_desempenho_academico["DS_MATRICULA_DRE"] == dre
-        ]
-
-        cabecalho_e_metricas(
-            df_situacao_matricula_filtrado,
-            df_situacao_periodo_filtrado,
+        # Gera o perfil do alunos com seus dados pessoais
+        gerar_perfil_aluno(
+            dre,
+            df_situacao_matricula,
+            df_situacao_periodo,
+            df_desempenho_academico,
             dados.get("periodo_atual"),
         )
-
-        dados_gerais_aluno(df_situacao_matricula_filtrado, dados.get("periodo_atual"))
-
-        with st.expander("Períodos Trancados"):
-            # Filtrar os períodos trancados
-            periodos_trancados = sorted(
-                df_situacao_matricula_filtrado[
-                    df_situacao_matricula_filtrado["DS_SITUACAO"] == "Trancada"
-                ]["DS_PERIODO"].values
-            )
-
-            # Verificar se há períodos trancados
-            if len(periodos_trancados) > 0:
-                # Exibir cada período trancado
-                for periodo in periodos_trancados:
-                    st.write(f"- {periodo}")
-            else:
-                st.write("Não há períodos trancados.")
-
-        st.divider()
-
-        grafico_de_crs(df_situacao_periodo_filtrado)
-        st.divider()
-
-        tabela_aprovacao_disciplina(
-            df_desempenho_academico_filtrado, df_desempenho_academico
-        )
     else:
-        st.text_input("Pesquisar", placeholder="Digite o Nome ou DRE")
+        st.header("Alunos")
+        # Criar tabela com a listagem de alunos
+        listagem_de_alunos(
+            df_situacao_periodo, df_situacao_matricula, dados.get("periodo_atual")
+        )
 
 
 main()

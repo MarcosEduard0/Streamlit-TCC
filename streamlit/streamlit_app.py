@@ -15,7 +15,7 @@ home = st.Page(
     "pages/home/home.py", title="Início", icon=":material/home:", default=True
 )
 aluno_home = st.Page(
-    "pages/alunos/aluno_home.py", title="Geral", icon=":material/dashboard:"
+    "pages/alunos/aluno_home.py", title="Geral", icon=":material/home:"
 )
 aluno_individual_page = st.Page(
     "pages/alunos/aluno_individual.py", title="Individual", icon=":material/search:"
@@ -38,7 +38,7 @@ base_dados = st.Page(
 
 # Navegação
 pages = {
-    "Geral": [home],
+    # "Geral": [home],
     "Alunos": [aluno_home, aluno_individual_page],
     "Disciplinas": [disciplinas_page, individual_disciplina_page],
     "Base de Dados": [base_dados],
