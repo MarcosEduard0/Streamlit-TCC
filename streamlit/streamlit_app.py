@@ -21,11 +21,11 @@ aluno_individual_page = st.Page(
     "pages/alunos/aluno_individual.py", title="Individual", icon=":material/search:"
 )
 disciplinas_page = st.Page(
-    "pages/disciplinas/home_disciplina.py", title="Início", icon=":material/search:"
+    "pages/disciplinas/disciplina_home.py", title="Geral", icon=":material/dashboard:"
 )
 
 individual_disciplina_page = st.Page(
-    "pages/disciplinas/individual_disciplina.py",
+    "pages/disciplinas/disciplina_individual.py",
     title="Individual",
     icon=":material/search:",
 )
