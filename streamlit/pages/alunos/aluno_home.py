@@ -506,27 +506,64 @@ def main():
 
     # Segundo container
     with st.container():
+        st.subheader("Alunos em Situação de Risco")
+
+        # Processamento dos alunos ativos
+        df_aluno_ativos = processa_alunos_ativos(df_situacao_matricula_filtrado)
+
+        # Aplica a Regra 1
+        df_alunos_tipo_1 = obter_alunos_tipo_1(df_aluno_ativos)
+
+        # Aplica a Regra 2
+        df_alunos_tipo_2 = obter_alunos_tipo_2(df_aluno_ativos, df_situacao_periodo)
+
+        df_alunos_tipo_3 = obter_alunos_tipo_3(df_aluno_ativos, df_desempenho_academico)
+        # Concatena os três tipos de alunos em risco
+        df_alunos_em_risco = pd.concat(
+            [df_alunos_tipo_1, df_alunos_tipo_2, df_alunos_tipo_3], axis=0
+        )
+        gerar_tabela_alunos_em_risco(df_alunos_em_risco)
+
+    # Segundo container
+    with st.container():
+        st.subheader("Situação de Matricula por Periodo de Ingresso")
+        grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula_filtrado)
+        st.divider()
+
+    with st.container():
         col1, col2 = st.columns(2)
+
         with col1:
-            st.subheader("Alunos em Situação de Risco")
+            st.subheader("Concentração de Alunos por Bairro")
 
-            # Processamento dos alunos ativos
-            df_aluno_ativos = processa_alunos_ativos(df_situacao_matricula_filtrado)
-
-            # Aplica a Regra 1
-            df_alunos_tipo_1 = obter_alunos_tipo_1(df_aluno_ativos)
-
-            # Aplica a Regra 2
-            df_alunos_tipo_2 = obter_alunos_tipo_2(df_aluno_ativos, df_situacao_periodo)
-
-            df_alunos_tipo_3 = obter_alunos_tipo_3(
-                df_aluno_ativos, df_desempenho_academico
+            df_aluno_mapa = (
+                d_aluno_filtrado[
+                    ["DS_BAIRRO", "DS_ESTADO", "VL_LATITUDE", "VL_LONGITUDE"]
+                ]
+                .groupby(["DS_BAIRRO", "DS_ESTADO", "VL_LATITUDE", "VL_LONGITUDE"])
+                .size()
+                .reset_index(name="Total")
+                .rename(columns={"DS_BAIRRO": "Bairro"})  # Renomeando para 'Bairro'
             )
-            # Concatena os três tipos de alunos em risco
-            df_alunos_em_risco = pd.concat(
-                [df_alunos_tipo_1, df_alunos_tipo_2, df_alunos_tipo_3], axis=0
+
+            fig = px.scatter_mapbox(
+                df_aluno_mapa,
+                lat="VL_LATITUDE",
+                lon="VL_LONGITUDE",
+                color="Total",
+                size="Total",
+                color_continuous_scale=px.colors.cyclical.IceFire,
+                mapbox_style="carto-positron",
+                size_max=15,
+                zoom=10,
+                hover_data={
+                    "Bairro": True,
+                    "Total": True,
+                    "VL_LATITUDE": False,
+                    "VL_LONGITUDE": False,
+                },
             )
-            gerar_tabela_alunos_em_risco(df_alunos_em_risco)
+            st.plotly_chart(fig)
 
         with col2:
             st.subheader("Tempo até se formação")
@@ -569,43 +606,6 @@ def main():
             st.plotly_chart(fig)
 
         st.divider()
-
-    # Segundo container
-    with st.container():
-        st.subheader("Situação de Matricula por Periodo de Ingresso")
-        grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula_filtrado)
-        st.divider()
-
-    # Terceiro container | MAPA
-    with st.container():
-        st.subheader("Concentração de Alunos por Bairro")
-
-        df_aluno_mapa = (
-            d_aluno_filtrado[["DS_BAIRRO", "DS_ESTADO", "VL_LATITUDE", "VL_LONGITUDE"]]
-            .groupby(["DS_BAIRRO", "DS_ESTADO", "VL_LATITUDE", "VL_LONGITUDE"])
-            .size()
-            .reset_index(name="Total")
-            .rename(columns={"DS_BAIRRO": "Bairro"})  # Renomeando para 'Bairro'
-        )
-
-        fig = px.scatter_mapbox(
-            df_aluno_mapa,
-            lat="VL_LATITUDE",
-            lon="VL_LONGITUDE",
-            color="Total",
-            size="Total",
-            color_continuous_scale=px.colors.cyclical.IceFire,
-            mapbox_style="carto-positron",
-            size_max=15,
-            zoom=10,
-            hover_data={
-                "Bairro": True,
-                "Total": True,
-                "VL_LATITUDE": False,
-                "VL_LONGITUDE": False,
-            },
-        )
-        st.plotly_chart(fig)
 
 
 main()
