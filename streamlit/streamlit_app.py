@@ -1,7 +1,15 @@
 import streamlit as st
 import os
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="COAA - UFRJ",
+    page_icon="🏠",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        "About": "Trabalho desenvolvido para o trabalho de conclusão de curso!",
+    },
+)
 
 CAMINHO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 # Exibindo o logo
@@ -9,6 +17,7 @@ st.logo(
     image=f"{CAMINHO_ATUAL}/images/horizontal_blue.png",
     icon_image=f"{CAMINHO_ATUAL}/images/icon_blue.png",
 )
+
 
 # Definindo as páginas
 home = st.Page(

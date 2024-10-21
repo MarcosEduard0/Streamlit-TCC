@@ -55,9 +55,15 @@ def filtra_alunos_consecutivos(df_aluno_ativos):
 
 # Função para aplicar a regra 2: CRA menor que 3 consecutivos
 def obter_alunos_tipo_2(df_aluno_ativos, df_situacao_periodo):
+    df_situacao_periodo = df_situacao_periodo[
+        ["SK_D_ALUNO", "VL_CR_PERIODO", "VL_CR_ACUMULADO", "DS_PERIODO"]
+    ]
+
     #  Faz o merge dos DataFrames
     df_aluno_ativos = df_situacao_periodo.merge(
-        df_aluno_ativos, on="SK_D_ALUNO", how="inner"
+        df_aluno_ativos,
+        on="SK_D_ALUNO",
+        how="inner",
     )
 
     # Aplica a filtragem por consecutividade
@@ -138,6 +144,7 @@ def obter_alunos_tipo_3(df_aluno_ativos, df_desempenho_academico):
                 "SK_D_DISCIPLINA",
                 "DS_MATRICULA_DRE",
                 "NM_ALUNO",
+                "DS_MODALIDADE_COTA",
                 "DS_PERIODO_INGRESSO_UFRJ",
                 "DS_SITUACAO_MATRICULA",
             ]
@@ -175,6 +182,7 @@ def gerar_tabela_alunos_em_risco(df_alunos_em_risco):
             [
                 "DS_MATRICULA_DRE",
                 "NM_ALUNO",
+                "DS_MODALIDADE_COTA",
                 "DS_PERIODO_INGRESSO_UFRJ",
                 "DS_SITUACAO",
             ]
@@ -199,6 +207,7 @@ def gerar_tabela_alunos_em_risco(df_alunos_em_risco):
                 display_text="aluno_individual\\?dre=([^&\\s]*)",
             ),
             "NM_ALUNO": "Nome Completo",
+            "DS_MODALIDADE_COTA": "Tipo de Cota",
             "DS_PERIODO_INGRESSO_UFRJ": "Período de Ingresso na UFRJ",
             "DS_SITUACAO": "Situação da Matrícula",
             "TIPO_RISCO": "Tipos de Riscos",
@@ -272,8 +281,8 @@ def grafico_media_cra_periodo(dataframe):
 def grafico_situacao_matricula_periodo_ingresso(df_situacao_matricula):
 
     # Ordenar o dataframe pelo período em ordem decrescente para que o mais recente venha primeiro
-    df_situacao_matricula.sort_values(
-        ["DS_MATRICULA_DRE", "DS_PERIODO"], ascending=False, inplace=True
+    df_situacao_matricula = df_situacao_matricula.sort_values(
+        ["DS_MATRICULA_DRE", "DS_PERIODO"], ascending=False
     )
 
     # Remover duplicatas mantendo apenas o registro mais recente para cada aluno (considerando a coluna de situação)
@@ -349,6 +358,30 @@ def periodos_anteriores(periodo_atual, num_semestres):
     return f"{ano_anterior}/{semestre_anterior}"
 
 
+def aplicar_filtros(
+    df,
+    inicio_periodo,
+    fim_periodo,
+    sexo,
+    modalidade,
+    nome_coluna_periodo="DS_PERIODO_INGRESSO_UFRJ",
+):
+    # Aplicando filtro de intervalo de periodo
+    df_filtrado = df[
+        (df[nome_coluna_periodo] >= inicio_periodo)
+        & (df[nome_coluna_periodo] <= fim_periodo)
+    ]
+    # Aplicar filtro de sexo, se houver seleção
+    if sexo:
+        df_filtrado = df_filtrado[df_filtrado["DS_SEXO"].isin(sexo)]
+
+    # Aplicar filtro de modalidade de cota, se houver seleção
+    if modalidade:
+        df_filtrado = df_filtrado[df_filtrado["DS_MODALIDADE_COTA"].isin(modalidade)]
+
+    return df_filtrado
+
+
 def main():
     # Carregamento dos dados
     dados = carregar_dados(
@@ -369,7 +402,7 @@ def main():
 
     # Criar tabela Fato Situação Período
     df_situacao_periodo = merge_dataframes(
-        [dados.get("d_periodo")], dados.get("f_situacao_periodo")
+        [dados.get("d_periodo"), dados.get("d_aluno")], dados.get("f_situacao_periodo")
     )
 
     # Fato Desemepnho Academico
@@ -378,11 +411,11 @@ def main():
         dimensions, dados.get("f_desempenho_academico")
     )
 
-    # Inicio da Pagina
+    # Informações iniciais da Pagina
     st.header("Sistema de Análises Acadêmica 🎓")
     st.subheader("Dados Gerais de Alunos")
 
-    # Filtros
+    # Barra de Filtros
     with st.sidebar:
         # Obtenção das listas de opções
         lista_periodos = dados.get("d_periodo")["DS_PERIODO"]
@@ -395,15 +428,8 @@ def main():
         ].to_list()
 
         # Slider para selecionar o período de ingresso
-        inicio_periodo, fim_periodo = st.select_slider(
-            label="Período",
-            options=lista_periodos_filtrada,
-            value=(min(lista_periodos_filtrada), max(lista_periodos_filtrada)),
-        )
-
-        # Slider para selecionar o período de ingresso
         inicio_periodo_UFRJ, fim_periodo_UFRJ = st.select_slider(
-            label="Período de Ingresso na UFRJ",
+            label="Período",
             options=lista_periodos_filtrada,
             value=(min(lista_periodos_filtrada), max(lista_periodos_filtrada)),
         )
@@ -422,42 +448,46 @@ def main():
             placeholder="Selecione as opções",
         )
 
-        # Filtragem dos dados
-        df_situacao_matricula_filtrado = df_situacao_matricula[
-            (df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"] >= inicio_periodo_UFRJ)
-            & (df_situacao_matricula["DS_PERIODO_INGRESSO_UFRJ"] <= fim_periodo_UFRJ)
-        ]
+        df_situacao_matricula_filtrado = aplicar_filtros(
+            df_situacao_matricula,
+            inicio_periodo_UFRJ,
+            fim_periodo_UFRJ,
+            sexo_selecionado,
+            modalidade_selecionada,
+        )
 
-        d_aluno_filtrado = dados.get("d_aluno")[
-            (dados.get("d_aluno")["DS_PERIODO_INGRESSO_UFRJ"] >= inicio_periodo_UFRJ)
-            & (dados.get("d_aluno")["DS_PERIODO_INGRESSO_UFRJ"] <= fim_periodo_UFRJ)
-        ]
+        df_situacao_matricula_CR_filtrado = aplicar_filtros(
+            df_situacao_matricula,
+            inicio_periodo_UFRJ,
+            fim_periodo_UFRJ,
+            sexo_selecionado,
+            modalidade_selecionada,
+            "DS_PERIODO",
+        )
+        df_situacao_periodo_filtrado = aplicar_filtros(
+            df_situacao_periodo,
+            inicio_periodo_UFRJ,
+            fim_periodo_UFRJ,
+            sexo_selecionado,
+            modalidade_selecionada,
+            "DS_PERIODO",
+        )
 
-        # Aplicar filtro de sexo, se houver seleção
-        if sexo_selecionado:
-            df_situacao_matricula_filtrado = df_situacao_matricula_filtrado[
-                df_situacao_matricula_filtrado["DS_SEXO"].isin(sexo_selecionado)
-            ]
-            d_aluno_filtrado = dados.get("d_aluno")[
-                d_aluno_filtrado["DS_SEXO"].isin(sexo_selecionado)
-            ]
+        d_aluno_filtrado = aplicar_filtros(
+            dados.get("d_aluno"),
+            inicio_periodo_UFRJ,
+            fim_periodo_UFRJ,
+            sexo_selecionado,
+            modalidade_selecionada,
+        )
 
-        # Aplicar filtro de modalidade de cota, se houver seleção
-        if modalidade_selecionada:
-            df_situacao_matricula_filtrado = df_situacao_matricula_filtrado[
-                df_situacao_matricula_filtrado["DS_MODALIDADE_COTA"].isin(
-                    modalidade_selecionada
-                )
-            ]
-            d_aluno_filtrado = dados.get("d_aluno")[
-                d_aluno_filtrado["DS_MODALIDADE_COTA"].isin(modalidade_selecionada)
-            ]
+        st.button("Limpar")
 
     # Primeiro container
     with st.container():
         col1, col2 = st.columns(2)
-
-        col1.metric("Total de Alunos", 60, 1)
+        total_alunos = len(d_aluno_filtrado)
+        col1.metric("Total de Alunos por Ingresso", total_alunos, 1)
         col2.metric("Idade Média de Formação", 25)
 
         st.divider()
@@ -467,11 +497,11 @@ def main():
 
         with col1:
             st.subheader("Situação de Matricula por Período")
-            grafico_situacao_matricula_periodo(df_situacao_matricula)
+            grafico_situacao_matricula_periodo(df_situacao_matricula_CR_filtrado)
 
         with col2:
             st.subheader("Média CRA por Perído")
-            grafico_media_cra_periodo(df_situacao_periodo)
+            grafico_media_cra_periodo(df_situacao_periodo_filtrado)
         st.divider()
 
     # Segundo container
@@ -492,7 +522,6 @@ def main():
             df_alunos_tipo_3 = obter_alunos_tipo_3(
                 df_aluno_ativos, df_desempenho_academico
             )
-
             # Concatena os três tipos de alunos em risco
             df_alunos_em_risco = pd.concat(
                 [df_alunos_tipo_1, df_alunos_tipo_2, df_alunos_tipo_3], axis=0
